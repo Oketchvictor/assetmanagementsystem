@@ -1,6 +1,5 @@
 import { saveAs } from 'file-saver';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import api from './api';
 
 export const reportService = {
   // Generate and download reports
@@ -48,7 +47,199 @@ export const reportService = {
       console.error('Error generating report:', error);
       throw error;
     }
+  },
+
+  // Send report via email
+  sendReportByEmail: async (reportType, format, email, filters = {}) => {
+    try {
+      let data;
+      
+      // Fetch data based on report type
+      switch (reportType) {
+        case 'asset-inventory':
+          data = await fetchAssetInventory(filters);
+          break;
+        case 'asset-assignment':
+          data = await fetchAssetAssignments(filters);
+          break;
+        case 'maintenance':
+          data = await fetchMaintenanceHistory(filters);
+          break;
+        case 'transfer-history':
+          data = await fetchTransferHistory(filters);
+          break;
+        case 'category-summary':
+          data = await fetchCategorySummary(filters);
+          break;
+        case 'location-inventory':
+          data = await fetchLocationInventory(filters);
+          break;
+        default:
+          data = [];
+          break;
+      }
+
+      // Generate report content based on format
+      let reportContent;
+      let fileName;
+      
+      switch (format) {
+        case 'html':
+          reportContent = generateHTMLReportContent(reportType, data, filters);
+          fileName = `${getReportTitle(reportType).replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.html`;
+          break;
+        case 'txt':
+          reportContent = generateTextReportContent(reportType, data, filters);
+          fileName = `${getReportTitle(reportType).replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+          break;
+        case 'doc':
+          reportContent = generateWordReportContent(reportType, data, filters);
+          fileName = `${getReportTitle(reportType).replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.doc`;
+          break;
+        default:
+          reportContent = generateHTMLReportContent(reportType, data, filters);
+          fileName = `${getReportTitle(reportType).replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.html`;
+          break;
+      }
+
+      // Send email via backend API (or mock for demo)
+      const response = await api.post('/reports/send-email/', {
+        email,
+        subject: `${getReportTitle(reportType)} - ${new Date().toLocaleDateString()}`,
+        content: reportContent,
+        fileName: fileName,
+        format: format
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error sending report email:', error);
+      throw error;
+    }
+  },
+
+  // Get all scheduled reports
+  getScheduledReports: () => {
+    const schedules = localStorage.getItem('reportSchedules');
+    return schedules ? JSON.parse(schedules) : [];
+  },
+
+  // Save scheduled report
+  saveScheduledReport: (schedule) => {
+    const schedules = reportService.getScheduledReports();
+    const newSchedule = {
+      id: Date.now(),
+      ...schedule,
+      createdAt: new Date().toISOString(),
+      lastSent: null,
+      nextRun: calculateNextRun(schedule)
+    };
+    schedules.push(newSchedule);
+    localStorage.setItem('reportSchedules', JSON.stringify(schedules));
+    return newSchedule;
+  },
+
+  // Update scheduled report
+  updateScheduledReport: (id, updates) => {
+    const schedules = reportService.getScheduledReports();
+    const index = schedules.findIndex(s => s.id === id);
+    if (index !== -1) {
+      schedules[index] = { ...schedules[index], ...updates, nextRun: calculateNextRun({ ...schedules[index], ...updates }) };
+      localStorage.setItem('reportSchedules', JSON.stringify(schedules));
+      return schedules[index];
+    }
+    return null;
+  },
+
+  // Delete scheduled report
+  deleteScheduledReport: (id) => {
+    const schedules = reportService.getScheduledReports();
+    const filtered = schedules.filter(s => s.id !== id);
+    localStorage.setItem('reportSchedules', JSON.stringify(filtered));
+    return filtered;
+  },
+
+  // Process scheduled reports (should be called periodically)
+  processScheduledReports: async () => {
+    const schedules = reportService.getScheduledReports();
+    const now = new Date();
+    let processed = false;
+
+    for (const schedule of schedules) {
+      if (schedule.active && schedule.nextRun && new Date(schedule.nextRun) <= now) {
+        try {
+          // Generate and send the report
+          await reportService.sendReportByEmail(
+            schedule.reportType,
+            schedule.format,
+            schedule.email,
+            {
+              start_date: schedule.startDate || '',
+              end_date: schedule.endDate || ''
+            }
+          );
+          
+          // Update last sent and next run
+          const newNextRun = calculateNextRun(schedule, true);
+          reportService.updateScheduledReport(schedule.id, {
+            lastSent: now.toISOString(),
+            nextRun: newNextRun
+          });
+          
+          processed = true;
+        } catch (error) {
+          console.error(`Failed to send scheduled report ${schedule.id}:`, error);
+        }
+      }
+    }
+    
+    return processed;
   }
+};
+
+// Helper function to calculate next run time
+const calculateNextRun = (schedule, fromLastRun = false) => {
+  const now = new Date();
+  const [hours, minutes] = schedule.time.split(':').map(Number);
+  
+  let nextRun = new Date();
+  nextRun.setHours(hours, minutes, 0, 0);
+  
+  if (schedule.frequency === 'daily') {
+    if (nextRun <= now) {
+      nextRun.setDate(nextRun.getDate() + 1);
+    }
+  } else if (schedule.frequency === 'weekly') {
+    const targetDay = getDayNumber(schedule.dayOfWeek);
+    const currentDay = nextRun.getDay();
+    let daysToAdd = targetDay - currentDay;
+    if (daysToAdd <= 0) daysToAdd += 7;
+    nextRun.setDate(nextRun.getDate() + daysToAdd);
+    if (nextRun <= now) {
+      nextRun.setDate(nextRun.getDate() + 7);
+    }
+  } else if (schedule.frequency === 'monthly') {
+    const targetDay = parseInt(schedule.dayOfWeek);
+    nextRun.setDate(targetDay);
+    if (nextRun <= now) {
+      nextRun.setMonth(nextRun.getMonth() + 1);
+    }
+  }
+  
+  return nextRun.toISOString();
+};
+
+const getDayNumber = (day) => {
+  const days = {
+    'Sunday': 0,
+    'Monday': 1,
+    'Tuesday': 2,
+    'Wednesday': 3,
+    'Thursday': 4,
+    'Friday': 5,
+    'Saturday': 6
+  };
+  return days[day];
 };
 
 // Fetch functions with comprehensive mock data
@@ -116,8 +307,8 @@ const fetchLocationInventory = async (filters) => {
   ];
 };
 
-// HTML Report Generation (Primary format)
-const generateHTMLReport = (reportType, data, filters) => {
+// HTML Report Generation (for email)
+const generateHTMLReportContent = (reportType, data, filters) => {
   if (!data || data.length === 0) {
     throw new Error('No data available for this report');
   }
@@ -128,7 +319,7 @@ const generateHTMLReport = (reportType, data, filters) => {
   
   let tableHtml = generateTableHTML(reportType, data);
   
-  const html = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -218,14 +409,6 @@ const generateHTMLReport = (reportType, data, filters) => {
       margin-top: 30px; padding-top: 20px; border-top: 1px solid #1C2E44;
       text-align: center; font-size: 10px; color: #3D5A78;
     }
-    @media print {
-      body { background: white; padding: 20px; }
-      .report-container { background: white; box-shadow: none; }
-      h1 { color: #000; background: none; -webkit-text-fill-color: #000; }
-      .report-table th { background: #f0f0f0; color: #000; }
-      .report-table td { color: #000; }
-      body::before { color: rgba(0,0,0,0.08); font-size: 100px; }
-    }
   </style>
 </head>
 <body>
@@ -245,9 +428,129 @@ const generateHTMLReport = (reportType, data, filters) => {
   </div>
 </body>
 </html>`;
-  
-  const blob = new Blob([html], { type: 'text/html' });
+};
+
+// HTML Report Generation (for download)
+const generateHTMLReport = (reportType, data, filters) => {
+  const content = generateHTMLReportContent(reportType, data, filters);
+  const title = getReportTitle(reportType);
+  const blob = new Blob([content], { type: 'text/html' });
   const fileName = `${title.replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.html`;
+  saveAs(blob, fileName);
+  return { success: true, fileName };
+};
+
+// Text Report Generation (for email)
+const generateTextReportContent = (reportType, data, filters) => {
+  const title = getReportTitle(reportType);
+  const date = new Date().toLocaleString();
+  const userName = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).first_name : 'Admin Seovo';
+  
+  let text = `╔════════════════════════════════════════════════════════════════════╗
+║                      SEOVO SOLUTIONS AMS                         ║
+║                        ${title.padEnd(45)}                        ║
+╚════════════════════════════════════════════════════════════════════╝
+
+Generated: ${date}
+Generated by: ${userName}
+${filters.start_date || filters.end_date ? `Date Range: ${filters.start_date || 'All'} to ${filters.end_date || 'All'}\n` : ''}
+${'='.repeat(80)}
+
+`;
+  
+  switch (reportType) {
+    case 'asset-inventory':
+      text += `ASSET INVENTORY REPORT\n${'='.repeat(60)}\n\n`;
+      text += `| ${'Tag'.padEnd(12)} | ${'Name'.padEnd(30)} | ${'Category'.padEnd(12)} | ${'Location'.padEnd(20)} | ${'Status'.padEnd(10)} |\n`;
+      text += `${'-'.repeat(95)}\n`;
+      data.forEach(item => {
+        text += `| ${(item.tag || '').padEnd(12)} | ${(item.name || '').substring(0, 28).padEnd(28)} | ${(item.category_name || '').padEnd(12)} | ${(item.location || '').padEnd(20)} | ${(item.status || '').padEnd(10)} |\n`;
+      });
+      break;
+    default:
+      text += `Data available for this report.\n`;
+      break;
+  }
+  
+  text += `
+${'='.repeat(80)}
+
+╔════════════════════════════════════════════════════════════════════╗
+║                    SeovoSolutions 2026                              ║
+║              End of Report - Seovo Solutions AMS                    ║
+╚════════════════════════════════════════════════════════════════════╝`;
+  
+  return text;
+};
+
+// Text Report Generation (for download)
+const generateTextReport = (reportType, data, filters) => {
+  const content = generateTextReportContent(reportType, data, filters);
+  const title = getReportTitle(reportType);
+  const blob = new Blob([content], { type: 'text/plain' });
+  const fileName = `${title.replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+  saveAs(blob, fileName);
+  return { success: true, fileName };
+};
+
+// Word Report Generation (for email)
+const generateWordReportContent = (reportType, data, filters) => {
+  const title = getReportTitle(reportType);
+  const date = new Date().toLocaleString();
+  const userName = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).first_name : 'Admin Seovo';
+  
+  let tableHtml = generateWordTableHTML(reportType, data);
+  
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${title}</title>
+  <style>
+    body {
+      font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+      margin: 40px;
+      position: relative;
+    }
+    body::before {
+      content: "SeovoSolutions 2026";
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-45deg);
+      font-size: 100px;
+      color: rgba(0,0,0,0.05);
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 1000;
+      font-family: Arial, sans-serif;
+    }
+    h1 { color: #00E5A8; font-size: 28px; margin-bottom: 20px; }
+    .report-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    .report-table th { background: #00E5A8; color: #07101F; padding: 10px; border: 1px solid #ccc; }
+    .report-table td { padding: 8px; border: 1px solid #ccc; }
+    .footer { margin-top: 40px; text-align: center; font-size: 10px; color: #666; }
+  </style>
+</head>
+<body>
+  <h1>${title}</h1>
+  <p><strong>Generated:</strong> ${date}</p>
+  <p><strong>Generated by:</strong> ${userName}</p>
+  ${tableHtml}
+  <div class="footer">
+    <p>© ${new Date().getFullYear()} Seovo Solutions. All rights reserved.</p>
+    <p>SeovoSolutions 2026</p>
+  </div>
+</body>
+</html>`;
+};
+
+// Word Report Generation (for download)
+const generateWordReport = (reportType, data, filters) => {
+  const content = generateWordReportContent(reportType, data, filters);
+  const title = getReportTitle(reportType);
+  const blob = new Blob([content], { type: 'application/msword' });
+  const fileName = `${title.replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.doc`;
   saveAs(blob, fileName);
   return { success: true, fileName };
 };
@@ -298,154 +601,9 @@ const generateTableHTML = (reportType, data) => {
           </tbody>
         </table>
       `;
-    case 'maintenance':
-      return `
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th>Asset Tag</th><th>Asset Name</th><th>Issue Type</th><th>Severity</th><th>Status</th><th>Reported Date</th><th>Description</th>
-            </thead>
-          <tbody>
-            ${data.map(item => `
-              <tr>
-                <td class="mono">${item.asset_tag}</td>
-                <td>${item.asset_name}</td>
-                <td>${item.issue_type}</td>
-                <td><span class="severity-${item.severity.toLowerCase()}">${item.severity}</span></td>
-                <td><span class="status-${item.status}">${item.status.replace('_', ' ')}</span></td>
-                <td>${new Date(item.created_at).toLocaleDateString()}</td>
-                <td>${item.description}</td>
-               </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-    case 'transfer-history':
-      return `
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th>Asset Tag</th><th>Asset Name</th><th>From</th><th>To</th><th>Transferred By</th><th>Date</th><th>Reason</th>
-            </thead>
-          <tbody>
-            ${data.map(item => `
-              <tr>
-                <td class="mono">${item.asset_tag}</td>
-                <td>${item.asset_name}</td>
-                <td>${item.from_location}</td>
-                <td>${item.to_location}</td>
-                <td>${item.transferred_by_name}</td>
-                <td>${item.transferred_date}</td>
-                <td>${item.reason}</td>
-               </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-    case 'category-summary':
-      return `
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th>Category</th><th>Total Assets</th><th>Active</th><th>In Stock</th><th>Under Repair</th><th>Missing</th>
-            </thead>
-          <tbody>
-            ${data.map(item => `
-              <tr>
-                <td><strong>${item.category}</strong></td>
-                <td class="number">${item.total}</td>
-                <td class="number">${item.active}</td>
-                <td class="number">${item.in_stock}</td>
-                <td class="number">${item.under_repair}</td>
-                <td class="number">${item.missing}</td>
-               </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-    case 'location-inventory':
-      return `
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th>Location</th><th>Total Assets</th><th>Categories</th><th>Value (KES)</th>
-            </thead>
-          <tbody>
-            ${data.map(item => `
-              <tr>
-                <td><strong>${item.location}</strong></td>
-                <td class="number">${item.total}</td>
-                <td>${item.categories}</td>
-                <td class="value">KES ${item.value.toLocaleString()}</td>
-               </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
     default:
-      return '<p>No data available for this report type</p>';
+      return '<p>Report data available</p>';
   }
-};
-
-// Word Document Generation
-const generateWordReport = (reportType, data, filters) => {
-  if (!data || data.length === 0) {
-    throw new Error('No data available for this report');
-  }
-  
-  const title = getReportTitle(reportType);
-  const date = new Date().toLocaleString();
-  const userName = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).first_name : 'Admin Seovo';
-  
-  let tableHtml = generateWordTableHTML(reportType, data);
-  
-  const wordHtml = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>${title}</title>
-  <style>
-    body {
-      font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
-      margin: 40px;
-      position: relative;
-    }
-    body::before {
-      content: "SeovoSolutions 2026";
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(-45deg);
-      font-size: 100px;
-      color: rgba(0,0,0,0.05);
-      white-space: nowrap;
-      pointer-events: none;
-      z-index: 1000;
-      font-family: Arial, sans-serif;
-    }
-    h1 { color: #00E5A8; font-size: 28px; margin-bottom: 20px; }
-    .report-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    .report-table th { background: #00E5A8; color: #07101F; padding: 10px; border: 1px solid #ccc; }
-    .report-table td { padding: 8px; border: 1px solid #ccc; }
-    .footer { margin-top: 40px; text-align: center; font-size: 10px; color: #666; }
-  </style>
-</head>
-<body>
-  <h1>${title}</h1>
-  <p><strong>Generated:</strong> ${date}</p>
-  <p><strong>Generated by:</strong> ${userName}</p>
-  ${tableHtml}
-  <div class="footer">
-    <p>© ${new Date().getFullYear()} Seovo Solutions. All rights reserved.</p>
-    <p>SeovoSolutions 2026</p>
-  </div>
-</body>
-</html>`;
-  
-  const blob = new Blob([wordHtml], { type: 'application/msword' });
-  const fileName = `${title.replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.doc`;
-  saveAs(blob, fileName);
-  return { success: true, fileName };
 };
 
 // Helper function to generate Word table HTML
@@ -474,327 +632,9 @@ const generateWordTableHTML = (reportType, data) => {
           </tbody>
         </table>
       `;
-    case 'asset-assignment':
-      return `
-        <table class="report-table" border="1" cellpadding="8" cellspacing="0">
-          <thead>
-            <tr style="background: #00E5A8;">
-              <th>Asset Tag</th><th>Asset Name</th><th>Assigned To</th><th>Department</th><th>Assigned Date</th><th>Expected Return</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.map(item => `
-              <tr>
-                <td>${item.asset_tag}</td>
-                <td>${item.asset_name}</td>
-                <td>${item.employee_name}</td>
-                <td>${item.department}</td>
-                <td>${new Date(item.assigned_date).toLocaleDateString()}</td>
-                <td>${item.expected_return ? new Date(item.expected_return).toLocaleDateString() : '-'}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-    case 'maintenance':
-      return `
-        <table class="report-table" border="1" cellpadding="8" cellspacing="0">
-          <thead>
-            <tr style="background: #00E5A8;">
-              <th>Asset Tag</th><th>Asset Name</th><th>Issue Type</th><th>Severity</th><th>Status</th><th>Reported Date</th><th>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.map(item => `
-              <tr>
-                <td>${item.asset_tag}</td>
-                <td>${item.asset_name}</td>
-                <td>${item.issue_type}</td>
-                <td>${item.severity}</td>
-                <td>${item.status.replace('_', ' ')}</td>
-                <td>${new Date(item.created_at).toLocaleDateString()}</td>
-                <td>${item.description}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
     default:
       return `<p>Report data available with ${data.length} records</p>`;
   }
-};
-
-// Text Report Generation
-const generateTextReport = (reportType, data, filters) => {
-  if (!data || data.length === 0) {
-    throw new Error('No data available for this report');
-  }
-  
-  const title = getReportTitle(reportType);
-  const date = new Date().toLocaleString();
-  const userName = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).first_name : 'Admin Seovo';
-  
-  let text = `╔════════════════════════════════════════════════════════════════════╗
-║                      SEOVO SOLUTIONS AMS                         ║
-║                        ${title.padEnd(45)}                        ║
-╚════════════════════════════════════════════════════════════════════╝
-
-Generated: ${date}
-Generated by: ${userName}
-${filters.start_date || filters.end_date ? `Date Range: ${filters.start_date || 'All'} to ${filters.end_date || 'All'}\n` : ''}
-${'='.repeat(80)}
-
-`;
-  
-  switch (reportType) {
-    case 'asset-inventory':
-      text += `ASSET INVENTORY REPORT\n${'='.repeat(60)}\n\n`;
-      text += `| ${'Tag'.padEnd(12)} | ${'Name'.padEnd(30)} | ${'Category'.padEnd(12)} | ${'Location'.padEnd(20)} | ${'Status'.padEnd(10)} |\n`;
-      text += `${'-'.repeat(95)}\n`;
-      data.forEach(item => {
-        text += `| ${(item.tag || '').padEnd(12)} | ${(item.name || '').substring(0, 28).padEnd(28)} | ${(item.category_name || '').padEnd(12)} | ${(item.location || '').padEnd(20)} | ${(item.status || '').padEnd(10)} |\n`;
-      });
-      break;
-    case 'asset-assignment':
-      text += `ASSET ASSIGNMENT REPORT\n${'='.repeat(60)}\n\n`;
-      text += `| ${'Asset Tag'.padEnd(12)} | ${'Asset Name'.padEnd(30)} | ${'Assigned To'.padEnd(20)} | ${'Department'.padEnd(15)} |\n`;
-      text += `${'-'.repeat(85)}\n`;
-      data.forEach(item => {
-        text += `| ${(item.asset_tag || '').padEnd(12)} | ${(item.asset_name || '').substring(0, 28).padEnd(28)} | ${(item.employee_name || '').padEnd(20)} | ${(item.department || '').padEnd(15)} |\n`;
-      });
-      break;
-    case 'maintenance':
-      text += `MAINTENANCE HISTORY REPORT\n${'='.repeat(60)}\n\n`;
-      text += `| ${'Asset Tag'.padEnd(12)} | ${'Asset Name'.padEnd(25)} | ${'Issue Type'.padEnd(20)} | ${'Severity'.padEnd(10)} | ${'Status'.padEnd(12)} |\n`;
-      text += `${'-'.repeat(90)}\n`;
-      data.forEach(item => {
-        text += `| ${(item.asset_tag || '').padEnd(12)} | ${(item.asset_name || '').substring(0, 23).padEnd(23)} | ${(item.issue_type || '').padEnd(20)} | ${(item.severity || '').padEnd(10)} | ${(item.status || '').replace('_', ' ').padEnd(12)} |\n`;
-      });
-      break;
-    case 'transfer-history':
-      text += `TRANSFER HISTORY REPORT\n${'='.repeat(60)}\n\n`;
-      text += `| ${'Asset Tag'.padEnd(12)} | ${'Asset Name'.padEnd(25)} | ${'From'.padEnd(20)} | ${'To'.padEnd(20)} | ${'Date'.padEnd(12)} |\n`;
-      text += `${'-'.repeat(100)}\n`;
-      data.forEach(item => {
-        text += `| ${(item.asset_tag || '').padEnd(12)} | ${(item.asset_name || '').substring(0, 23).padEnd(23)} | ${(item.from_location || '').padEnd(20)} | ${(item.to_location || '').padEnd(20)} | ${(item.transferred_date || '').padEnd(12)} |\n`;
-      });
-      break;
-    case 'category-summary':
-      text += `CATEGORY SUMMARY REPORT\n${'='.repeat(60)}\n\n`;
-      text += `| ${'Category'.padEnd(20)} | ${'Total'.padEnd(8)} | ${'Active'.padEnd(8)} | ${'In Stock'.padEnd(10)} | ${'Repair'.padEnd(8)} | ${'Missing'.padEnd(8)} |\n`;
-      text += `${'-'.repeat(75)}\n`;
-      data.forEach(item => {
-        text += `| ${(item.category || '').padEnd(20)} | ${String(item.total).padEnd(8)} | ${String(item.active).padEnd(8)} | ${String(item.in_stock).padEnd(10)} | ${String(item.under_repair).padEnd(8)} | ${String(item.missing).padEnd(8)} |\n`;
-      });
-      break;
-    case 'location-inventory':
-      text += `LOCATION INVENTORY REPORT\n${'='.repeat(60)}\n\n`;
-      text += `| ${'Location'.padEnd(20)} | ${'Total Assets'.padEnd(12)} | ${'Value (KES)'.padEnd(15)} |\n`;
-      text += `${'-'.repeat(55)}\n`;
-      data.forEach(item => {
-        text += `| ${(item.location || '').padEnd(20)} | ${String(item.total).padEnd(12)} | ${`KES ${item.value.toLocaleString()}`.padEnd(15)} |\n`;
-      });
-      break;
-    default:
-      text += `No data available for this report type.\n`;
-      break;
-  }
-  
-  text += `
-${'='.repeat(80)}
-
-╔════════════════════════════════════════════════════════════════════╗
-║                    SeovoSolutions 2026                              ║
-║              End of Report - Seovo Solutions AMS                    ║
-╚════════════════════════════════════════════════════════════════════╝`;
-  
-  const blob = new Blob([text], { type: 'text/plain' });
-  const fileName = `${title.replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
-  saveAs(blob, fileName);
-  return { success: true, fileName };
-};
-
-// PDF Report Generation (Simplified and Working)
-const generatePDFReport = (reportType, data, filters) => {
-  if (!data || data.length === 0) {
-    throw new Error('No data available for this report');
-  }
-  
-  // Create a new jsPDF instance
-  const doc = new jsPDF({
-    orientation: 'landscape',
-    unit: 'mm',
-    format: 'a4'
-  });
-  
-  const title = getReportTitle(reportType);
-  const date = new Date().toLocaleString();
-  const userName = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).first_name : 'Admin Seovo';
-  
-  // Add title
-  doc.setFontSize(20);
-  doc.setTextColor(0, 100, 80);
-  doc.text(title, 14, 20);
-  
-  // Add metadata
-  doc.setFontSize(10);
-  doc.setTextColor(100, 100, 100);
-  doc.text(`Generated: ${date}`, 14, 30);
-  doc.text(`Generated by: ${userName}`, 14, 35);
-  doc.text(`Seovo Solutions Asset Management System`, 14, 40);
-  
-  // Add date filter if provided
-  let yPos = 45;
-  if (filters.start_date || filters.end_date) {
-    doc.setFontSize(9);
-    const rangeText = `Date Range: ${filters.start_date || 'All'} to ${filters.end_date || 'All'}`;
-    doc.text(rangeText, 14, yPos);
-    yPos = 50;
-  }
-  
-  // Add separator line
-  doc.setDrawColor(200, 200, 200);
-  doc.line(14, yPos, 280, yPos);
-  
-  // Prepare table data
-  let headers = [];
-  let tableData = [];
-  
-  switch (reportType) {
-    case 'asset-inventory':
-      headers = ['Tag', 'Name', 'Category', 'Serial', 'Location', 'Status', 'Value (KES)'];
-      tableData = data.map(item => [
-        item.tag,
-        item.name,
-        item.category_name,
-        item.serial || '-',
-        item.location,
-        item.status,
-        item.value ? `KES ${item.value.toLocaleString()}` : '-'
-      ]);
-      break;
-    case 'asset-assignment':
-      headers = ['Asset Tag', 'Asset Name', 'Assigned To', 'Department', 'Assigned Date', 'Expected Return'];
-      tableData = data.map(item => [
-        item.asset_tag,
-        item.asset_name,
-        item.employee_name,
-        item.department,
-        new Date(item.assigned_date).toLocaleDateString(),
-        item.expected_return ? new Date(item.expected_return).toLocaleDateString() : '-'
-      ]);
-      break;
-    case 'maintenance':
-      headers = ['Asset Tag', 'Asset Name', 'Issue Type', 'Severity', 'Status', 'Reported Date', 'Description'];
-      tableData = data.map(item => [
-        item.asset_tag,
-        item.asset_name,
-        item.issue_type,
-        item.severity,
-        item.status.replace('_', ' '),
-        new Date(item.created_at).toLocaleDateString(),
-        item.description.substring(0, 50)
-      ]);
-      break;
-    case 'transfer-history':
-      headers = ['Asset Tag', 'Asset Name', 'From', 'To', 'Transferred By', 'Date', 'Reason'];
-      tableData = data.map(item => [
-        item.asset_tag,
-        item.asset_name,
-        item.from_location,
-        item.to_location,
-        item.transferred_by_name,
-        item.transferred_date,
-        item.reason
-      ]);
-      break;
-    case 'category-summary':
-      headers = ['Category', 'Total', 'Active', 'In Stock', 'Repair', 'Missing'];
-      tableData = data.map(item => [
-        item.category,
-        item.total,
-        item.active,
-        item.in_stock,
-        item.under_repair,
-        item.missing
-      ]);
-      break;
-    case 'location-inventory':
-      headers = ['Location', 'Total Assets', 'Categories', 'Value (KES)'];
-      tableData = data.map(item => [
-        item.location,
-        item.total,
-        item.categories,
-        `KES ${item.value.toLocaleString()}`
-      ]);
-      break;
-    default:
-      headers = ['Error'];
-      tableData = [['Invalid report type']];
-      break;
-  }
-  
-  // Add table using autoTable
-  if (tableData.length > 0) {
-    doc.autoTable({
-      head: [headers],
-      body: tableData,
-      startY: yPos + 5,
-      theme: 'striped',
-      styles: {
-        fontSize: 8,
-        cellPadding: 2,
-        lineColor: [200, 200, 200],
-        lineWidth: 0.1
-      },
-      headStyles: {
-        fillColor: [0, 150, 136],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-        fontSize: 9
-      },
-      alternateRowStyles: {
-        fillColor: [240, 240, 240]
-      },
-      margin: { top: 55, bottom: 30, left: 14, right: 14 }
-    });
-  }
-  
-  // Add watermark to all pages
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    
-    // Add watermark text
-    doc.setFontSize(40);
-    doc.setTextColor(200, 200, 200);
-    doc.setFont('helvetica', 'bold');
-    
-    const watermarkText = 'SeovoSolutions 2026';
-    const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
-    
-    // Center watermark
-    doc.text(watermarkText, pageWidth / 2, pageHeight / 2, { 
-      align: 'center', 
-      angle: 45 
-    });
-    
-    // Add footer
-    doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.text(
-      `Seovo Solutions AMS - Page ${i} of ${pageCount}`,
-      pageWidth / 2,
-      pageHeight - 10,
-      { align: 'center' }
-    );
-  }
-  
-  // Save PDF
-  const fileName = `${title.replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.pdf`;
-  doc.save(fileName);
-  return { success: true, fileName };
 };
 
 // Helper function to get report title
