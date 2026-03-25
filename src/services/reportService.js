@@ -35,8 +35,6 @@ export const reportService = {
 
       // Generate report based on format
       switch (format) {
-        case 'pdf':
-          return generatePDFReport(reportType, data, filters);
         case 'html':
           return generateHTMLReport(reportType, data, filters);
         case 'txt':
