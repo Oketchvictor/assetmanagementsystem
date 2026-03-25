@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Button, Modal, Form, Alert, Spinner, Table } from 'react-bootstrap';
+import { Card, Row, Col, Button, Modal, Form, Alert, Spinner } from 'react-bootstrap';
 import { 
   FiFileText, FiDownload, FiBarChart2, FiPieChart, 
   FiCalendar, FiBox, FiFile, FiFilePlus, FiClock,
-  FiCheckCircle, FiAlertCircle, FiX, FiTrash2, FiEdit2,
-  FiMail, FiRepeat, FiSunrise, FiSunset, FiStar
+  FiCheckCircle, FiAlertCircle, FiX, FiTrash2, 
+  FiMail, FiRepeat, FiSunrise, FiSunset, FiStar,
+  FiSend, FiEdit2
 } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import reportService from '../services/reportService';
@@ -29,21 +30,143 @@ const Reports = () => {
     dayOfWeek: 'Monday',
     time: '09:00',
     email: '',
+    startDate: '',
+    endDate: '',
     active: true
   });
+  const [editingScheduleId, setEditingScheduleId] = useState(null);
+  const [processingSchedules, setProcessingSchedules] = useState(false);
 
   // Load schedules from localStorage on mount
   useEffect(() => {
-    const savedSchedules = localStorage.getItem('reportSchedules');
-    if (savedSchedules) {
-      setSchedules(JSON.parse(savedSchedules));
-    }
+    loadSchedules();
+    
+    // Set up interval to check for scheduled reports every minute
+    const interval = setInterval(() => {
+      checkAndProcessSchedules();
+    }, 60000);
+    
+    return () => clearInterval(interval);
   }, []);
 
-  // Save schedules to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('reportSchedules', JSON.stringify(schedules));
-  }, [schedules]);
+  const loadSchedules = () => {
+    const savedSchedules = localStorage.getItem('reportSchedules');
+    if (savedSchedules) {
+      try {
+        const parsed = JSON.parse(savedSchedules);
+        setSchedules(parsed);
+      } catch (e) {
+        console.error('Error parsing schedules:', e);
+        setSchedules([]);
+      }
+    }
+  };
+
+  const saveSchedules = (newSchedules) => {
+    localStorage.setItem('reportSchedules', JSON.stringify(newSchedules));
+    setSchedules(newSchedules);
+  };
+
+  const checkAndProcessSchedules = async () => {
+    if (processingSchedules) return;
+    
+    setProcessingSchedules(true);
+    try {
+      const now = new Date();
+      let updated = false;
+      const updatedSchedules = [...schedules];
+      
+      for (let i = 0; i < updatedSchedules.length; i++) {
+        const schedule = updatedSchedules[i];
+        
+        if (schedule.active && schedule.nextRun) {
+          const nextRunDate = new Date(schedule.nextRun);
+          if (nextRunDate <= now) {
+            try {
+              // Send the report
+              await reportService.sendReportByEmail(
+                schedule.reportType,
+                schedule.format,
+                schedule.email,
+                {
+                  start_date: schedule.startDate || '',
+                  end_date: schedule.endDate || ''
+                }
+              );
+              
+              // Update schedule with new next run time
+              const newNextRun = calculateNextRun(schedule);
+              updatedSchedules[i] = {
+                ...schedule,
+                lastSent: now.toISOString(),
+                nextRun: newNextRun
+              };
+              updated = true;
+              
+              toast.success(`Report sent to ${schedule.email}`);
+            } catch (error) {
+              console.error(`Failed to send scheduled report ${schedule.id}:`, error);
+            }
+          }
+        }
+      }
+      
+      if (updated) {
+        saveSchedules(updatedSchedules);
+      }
+    } finally {
+      setProcessingSchedules(false);
+    }
+  };
+
+  const calculateNextRun = (schedule) => {
+    const [hours, minutes] = schedule.time.split(':').map(Number);
+    const now = new Date();
+    let nextRun = new Date();
+    nextRun.setHours(hours, minutes, 0, 0);
+    
+    if (schedule.frequency === 'daily') {
+      if (nextRun <= now) {
+        nextRun.setDate(nextRun.getDate() + 1);
+      }
+    } else if (schedule.frequency === 'weekly') {
+      const targetDay = getDayNumber(schedule.dayOfWeek);
+      const currentDay = nextRun.getDay();
+      let daysToAdd = targetDay - currentDay;
+      if (daysToAdd <= 0) daysToAdd += 7;
+      nextRun.setDate(nextRun.getDate() + daysToAdd);
+      if (nextRun <= now) {
+        nextRun.setDate(nextRun.getDate() + 7);
+      }
+    } else if (schedule.frequency === 'monthly') {
+      const targetDay = parseInt(schedule.dayOfWeek);
+      nextRun.setDate(targetDay);
+      if (nextRun <= now) {
+        nextRun.setMonth(nextRun.getMonth() + 1);
+      }
+    }
+    
+    return nextRun.toISOString();
+  };
+
+  const getDayNumber = (day) => {
+    const days = {
+      'Sunday': 0,
+      'Monday': 1,
+      'Tuesday': 2,
+      'Wednesday': 3,
+      'Thursday': 4,
+      'Friday': 5,
+      'Saturday': 6
+    };
+    return days[day];
+  };
+
+  const formatNextRun = (nextRun) => {
+    if (!nextRun) return 'Not scheduled';
+    const date = new Date(nextRun);
+    return date.toLocaleString();
+  };
 
   const reportTypes = [
     { 
@@ -149,9 +272,29 @@ const Reports = () => {
         ...scheduleForm,
         reportType: reportType.id,
         reportName: reportType.name,
-        format: selectedFormat
+        format: selectedFormat,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate
       });
     }
+    setEditingScheduleId(null);
+    setShowScheduleModal(true);
+  };
+
+  const handleEditSchedule = (schedule) => {
+    setScheduleForm({
+      reportType: schedule.reportType,
+      reportName: schedule.reportName || getReportName(schedule.reportType),
+      format: schedule.format,
+      frequency: schedule.frequency,
+      dayOfWeek: schedule.dayOfWeek || 'Monday',
+      time: schedule.time,
+      email: schedule.email,
+      startDate: schedule.startDate || '',
+      endDate: schedule.endDate || '',
+      active: schedule.active
+    });
+    setEditingScheduleId(schedule.id);
     setShowScheduleModal(true);
   };
 
@@ -171,16 +314,40 @@ const Reports = () => {
       return;
     }
 
+    const nextRun = calculateNextRun(scheduleForm);
+    
     const newSchedule = {
-      id: Date.now(),
-      ...scheduleForm,
-      createdAt: new Date().toISOString(),
-      lastSent: null
+      id: editingScheduleId || Date.now(),
+      reportType: scheduleForm.reportType,
+      reportName: scheduleForm.reportName,
+      format: scheduleForm.format,
+      frequency: scheduleForm.frequency,
+      dayOfWeek: scheduleForm.dayOfWeek,
+      time: scheduleForm.time,
+      email: scheduleForm.email,
+      startDate: scheduleForm.startDate,
+      endDate: scheduleForm.endDate,
+      active: scheduleForm.active,
+      createdAt: editingScheduleId ? (schedules.find(s => s.id === editingScheduleId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+      lastSent: editingScheduleId ? (schedules.find(s => s.id === editingScheduleId)?.lastSent || null) : null,
+      nextRun: nextRun
     };
 
-    setSchedules([...schedules, newSchedule]);
-    toast.success('Report schedule created successfully!');
+    let updatedSchedules;
+    if (editingScheduleId) {
+      updatedSchedules = schedules.map(s => s.id === editingScheduleId ? newSchedule : s);
+      toast.success('Schedule updated successfully!');
+    } else {
+      updatedSchedules = [...schedules, newSchedule];
+      toast.success('Report schedule created successfully!');
+    }
+    
+    saveSchedules(updatedSchedules);
     setShowScheduleModal(false);
+    resetScheduleForm();
+  };
+
+  const resetScheduleForm = () => {
     setScheduleForm({
       reportType: '',
       reportName: '',
@@ -189,22 +356,48 @@ const Reports = () => {
       dayOfWeek: 'Monday',
       time: '09:00',
       email: '',
+      startDate: '',
+      endDate: '',
       active: true
     });
+    setEditingScheduleId(null);
   };
 
   const handleDeleteSchedule = (id) => {
     if (window.confirm('Are you sure you want to delete this scheduled report?')) {
-      setSchedules(schedules.filter(s => s.id !== id));
+      const updatedSchedules = schedules.filter(s => s.id !== id);
+      saveSchedules(updatedSchedules);
       toast.info('Schedule deleted');
     }
   };
 
   const handleToggleSchedule = (id) => {
-    setSchedules(schedules.map(s => 
+    const updatedSchedules = schedules.map(s => 
       s.id === id ? { ...s, active: !s.active } : s
-    ));
-    toast.info(`Schedule ${schedules.find(s => s.id === id)?.active ? 'paused' : 'activated'}`);
+    );
+    saveSchedules(updatedSchedules);
+    const schedule = updatedSchedules.find(s => s.id === id);
+    toast.info(`Schedule ${schedule.active ? 'activated' : 'paused'}`);
+  };
+
+  const handleTestSend = async (schedule) => {
+    setLoading(true);
+    try {
+      await reportService.sendReportByEmail(
+        schedule.reportType,
+        schedule.format,
+        schedule.email,
+        {
+          start_date: schedule.startDate || '',
+          end_date: schedule.endDate || ''
+        }
+      );
+      toast.success(`Test email sent to ${schedule.email}`);
+    } catch (error) {
+      toast.error('Failed to send test email');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getFrequencyIcon = (frequency) => {
@@ -215,6 +408,17 @@ const Reports = () => {
   const getReportName = (reportTypeId) => {
     const report = reportTypes.find(r => r.id === reportTypeId);
     return report ? report.name : reportTypeId;
+  };
+
+  const getIconColor = (color) => {
+    const colors = {
+      g: { bg: 'rgba(0, 229, 168, 0.08)', color: '#00E5A8' },
+      b: { bg: 'rgba(79, 158, 248, 0.09)', color: '#4F9EF8' },
+      a: { bg: 'rgba(255, 197, 66, 0.09)', color: '#FFC542' },
+      r: { bg: 'rgba(255, 90, 101, 0.09)', color: '#FF5A65' },
+      v: { bg: 'rgba(167, 139, 250, 0.09)', color: '#A78BFA' }
+    };
+    return colors[color] || colors.g;
   };
 
   const styles = {
@@ -243,7 +447,9 @@ const Reports = () => {
       padding: '20px',
       cursor: 'pointer',
       transition: 'all 0.22s',
-      height: '100%'
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column'
     },
     reportIcon: {
       width: '48px',
@@ -266,7 +472,8 @@ const Reports = () => {
       fontSize: '12px',
       color: '#6B8FAE',
       marginBottom: '16px',
-      lineHeight: 1.5
+      lineHeight: 1.5,
+      flex: 1
     },
     formatButtons: {
       display: 'flex',
@@ -301,7 +508,9 @@ const Reports = () => {
     },
     modalBody: {
       padding: '20px 22px',
-      background: '#0F1A2B'
+      background: '#0F1A2B',
+      maxHeight: '70vh',
+      overflowY: 'auto'
     },
     modalFoot: {
       padding: '14px 22px',
@@ -452,25 +661,14 @@ const Reports = () => {
     }
   };
 
-  const getIconColor = (color) => {
-    const colors = {
-      g: { bg: 'rgba(0, 229, 168, 0.08)', color: '#00E5A8' },
-      b: { bg: 'rgba(79, 158, 248, 0.09)', color: '#4F9EF8' },
-      a: { bg: 'rgba(255, 197, 66, 0.09)', color: '#FFC542' },
-      r: { bg: 'rgba(255, 90, 101, 0.09)', color: '#FF5A65' },
-      v: { bg: 'rgba(167, 139, 250, 0.09)', color: '#A78BFA' }
-    };
-    return colors[color] || colors.g;
-  };
-
   return (
     <div>
       {loading && (
         <div style={styles.loadingOverlay}>
           <div style={styles.loadingContent}>
             <Spinner animation="border" variant="success" style={{ marginBottom: '16px' }} />
-            <h3 style={{ color: '#D8EAF8', marginBottom: '8px' }}>Generating Report</h3>
-            <p style={{ color: '#6B8FAE', fontSize: '12px' }}>Please wait while we prepare your report...</p>
+            <h3 style={{ color: '#D8EAF8', marginBottom: '8px' }}>Processing</h3>
+            <p style={{ color: '#6B8FAE', fontSize: '12px' }}>Please wait...</p>
           </div>
         </div>
       )}
@@ -608,30 +806,35 @@ const Reports = () => {
                     <th style={styles.scheduleTableHeader}>Schedule</th>
                     <th style={styles.scheduleTableHeader}>Format</th>
                     <th style={styles.scheduleTableHeader}>Email</th>
+                    <th style={styles.scheduleTableHeader}>Next Run</th>
                     <th style={styles.scheduleTableHeader}>Status</th>
                     <th style={styles.scheduleTableHeader}>Actions</th>
-                  </tr>
-                </thead>
+                  </thead>
                 <tbody>
                   {schedules.slice(0, 3).map(schedule => (
                     <tr key={schedule.id}>
                       <td style={styles.scheduleTableCell}>
-                        <strong>{getReportName(schedule.reportType)}</strong>
-                      </td>
+                        <strong>{schedule.reportName || getReportName(schedule.reportType)}</strong>
+                       </td>
                       <td style={styles.scheduleTableCell}>
                         <span style={styles.scheduleBadge}>
                           {getFrequencyIcon(schedule.frequency)} {schedule.frequency.charAt(0).toUpperCase() + schedule.frequency.slice(1)}
                         </span>
-                      </td>
+                       </td>
                       <td style={styles.scheduleTableCell}>
                         {schedule.frequency === 'daily' ? 'Every day' :
                          schedule.frequency === 'weekly' ? `Every ${schedule.dayOfWeek}` :
                          `Day ${schedule.dayOfWeek} of month`} at {schedule.time}
-                      </td>
+                       </td>
                       <td style={styles.scheduleTableCell}>
                         <span style={styles.scheduleBadge}>{schedule.format.toUpperCase()}</span>
-                      </td>
+                       </td>
                       <td style={styles.scheduleTableCell}>{schedule.email}</td>
+                      <td style={styles.scheduleTableCell}>
+                        <span style={{ fontSize: '11px', color: '#00E5A8' }}>
+                          {formatNextRun(schedule.nextRun)}
+                        </span>
+                       </td>
                       <td style={styles.scheduleTableCell}>
                         <span style={{
                           ...styles.scheduleBadge,
@@ -640,9 +843,23 @@ const Reports = () => {
                         }}>
                           {schedule.active ? 'Active' : 'Paused'}
                         </span>
-                      </td>
+                       </td>
                       <td style={styles.scheduleTableCell}>
-                        <div style={{ display: 'flex', gap: '6px' }}>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          <button
+                            style={styles.btnSuccess}
+                            onClick={() => handleTestSend(schedule)}
+                            title="Send Test Email"
+                          >
+                            <FiSend size={12} />
+                          </button>
+                          <button
+                            style={styles.btnSuccess}
+                            onClick={() => handleEditSchedule(schedule)}
+                            title="Edit"
+                          >
+                            <FiEdit2 size={12} />
+                          </button>
                           <button
                             style={styles.btnSuccess}
                             onClick={() => handleToggleSchedule(schedule.id)}
@@ -658,8 +875,8 @@ const Reports = () => {
                             <FiTrash2 size={12} />
                           </button>
                         </div>
-                      </td>
-                    </tr>
+                       </td>
+                     </tr>
                   ))}
                 </tbody>
               </table>
@@ -745,13 +962,19 @@ const Reports = () => {
       </Modal>
 
       {/* Schedule Modal */}
-      <Modal show={showScheduleModal} onHide={() => setShowScheduleModal(false)} centered size="lg">
+      <Modal show={showScheduleModal} onHide={() => {
+        setShowScheduleModal(false);
+        resetScheduleForm();
+      }} centered size="lg">
         <Modal.Header style={styles.modalHead}>
           <Modal.Title style={{ color: '#D8EAF8', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FiCalendar /> Schedule Automated Report
+            <FiCalendar /> {editingScheduleId ? 'Edit' : 'Schedule'} Automated Report
           </Modal.Title>
           <button 
-            onClick={() => setShowScheduleModal(false)}
+            onClick={() => {
+              setShowScheduleModal(false);
+              resetScheduleForm();
+            }}
             style={{
               background: '#162234',
               border: '1px solid #1C2E44',
@@ -897,18 +1120,49 @@ const Reports = () => {
               </Form.Text>
             </Form.Group>
 
+            <Row>
+              <Col md={6}>
+                <Form.Group style={{ marginBottom: '16px' }}>
+                  <Form.Label style={styles.formLabel}>Start Date (Optional)</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="startDate"
+                    value={scheduleForm.startDate}
+                    onChange={handleScheduleChange}
+                    style={styles.formControl}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group style={{ marginBottom: '16px' }}>
+                  <Form.Label style={styles.formLabel}>End Date (Optional)</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="endDate"
+                    value={scheduleForm.endDate}
+                    onChange={handleScheduleChange}
+                    style={styles.formControl}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
             <Alert variant="info" style={{ background: 'rgba(79, 158, 248, 0.09)', border: '1px solid rgba(79, 158, 248, 0.22)', color: '#4F9EF8', fontSize: '12px', marginTop: '8px' }}>
               <FiMail style={{ marginRight: '8px' }} />
               Reports will be automatically generated and sent to the specified email at the scheduled time.
+              You can test the schedule by clicking "Send Test Email" after saving.
             </Alert>
           </Form>
         </Modal.Body>
         <Modal.Footer style={styles.modalFoot}>
-          <button style={styles.btnSecondary} onClick={() => setShowScheduleModal(false)}>
+          <button style={styles.btnSecondary} onClick={() => {
+            setShowScheduleModal(false);
+            resetScheduleForm();
+          }}>
             Cancel
           </button>
           <button style={styles.btnPrimary} onClick={handleAddSchedule}>
-            <FiCalendar /> Schedule Report
+            <FiCalendar /> {editingScheduleId ? 'Update Schedule' : 'Schedule Report'}
           </button>
         </Modal.Footer>
       </Modal>
@@ -953,30 +1207,42 @@ const Reports = () => {
                     <th style={styles.scheduleTableHeader}>Schedule</th>
                     <th style={styles.scheduleTableHeader}>Format</th>
                     <th style={styles.scheduleTableHeader}>Email</th>
+                    <th style={styles.scheduleTableHeader}>Next Run</th>
+                    <th style={styles.scheduleTableHeader}>Last Sent</th>
                     <th style={styles.scheduleTableHeader}>Status</th>
                     <th style={styles.scheduleTableHeader}>Actions</th>
-                  </tr>
-                </thead>
+                    </tr>
+                   </thead>
                 <tbody>
                   {schedules.map(schedule => (
                     <tr key={schedule.id}>
                       <td style={styles.scheduleTableCell}>
-                        <strong>{getReportName(schedule.reportType)}</strong>
-                      </td>
+                        <strong>{schedule.reportName || getReportName(schedule.reportType)}</strong>
+                        </td>
                       <td style={styles.scheduleTableCell}>
                         <span style={styles.scheduleBadge}>
                           {getFrequencyIcon(schedule.frequency)} {schedule.frequency.charAt(0).toUpperCase() + schedule.frequency.slice(1)}
                         </span>
-                      </td>
+                        </td>
                       <td style={styles.scheduleTableCell}>
                         {schedule.frequency === 'daily' ? 'Every day' :
                          schedule.frequency === 'weekly' ? `Every ${schedule.dayOfWeek}` :
                          `Day ${schedule.dayOfWeek} of month`} at {schedule.time}
-                       </td>
+                        </td>
                       <td style={styles.scheduleTableCell}>
                         <span style={styles.scheduleBadge}>{schedule.format.toUpperCase()}</span>
-                       </td>
+                        </td>
                       <td style={styles.scheduleTableCell}>{schedule.email}</td>
+                      <td style={styles.scheduleTableCell}>
+                        <span style={{ fontSize: '11px', color: '#00E5A8' }}>
+                          {formatNextRun(schedule.nextRun)}
+                        </span>
+                        </td>
+                      <td style={styles.scheduleTableCell}>
+                        <span style={{ fontSize: '11px', color: '#6B8FAE' }}>
+                          {schedule.lastSent ? new Date(schedule.lastSent).toLocaleString() : 'Never'}
+                        </span>
+                        </td>
                       <td style={styles.scheduleTableCell}>
                         <span style={{
                           ...styles.scheduleBadge,
@@ -985,14 +1251,31 @@ const Reports = () => {
                         }}>
                           {schedule.active ? 'Active' : 'Paused'}
                         </span>
-                       </td>
+                        </td>
                       <td style={styles.scheduleTableCell}>
-                        <div style={{ display: 'flex', gap: '6px' }}>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          <button
+                            style={styles.btnSuccess}
+                            onClick={() => handleTestSend(schedule)}
+                            title="Send Test Email"
+                          >
+                            <FiSend size={12} />
+                          </button>
+                          <button
+                            style={styles.btnSuccess}
+                            onClick={() => {
+                              setShowSchedulesModal(false);
+                              handleEditSchedule(schedule);
+                            }}
+                            title="Edit"
+                          >
+                            <FiEdit2 size={12} />
+                          </button>
                           <button
                             style={styles.btnSuccess}
                             onClick={() => {
                               handleToggleSchedule(schedule.id);
-                              setShowSchedulesModal(false);
+                              loadSchedules();
                             }}
                             title={schedule.active ? 'Pause' : 'Activate'}
                           >
@@ -1002,18 +1285,18 @@ const Reports = () => {
                             style={styles.btnDanger}
                             onClick={() => {
                               handleDeleteSchedule(schedule.id);
-                              setShowSchedulesModal(false);
+                              loadSchedules();
                             }}
                             title="Delete"
                           >
                             <FiTrash2 size={12} />
                           </button>
                         </div>
-                       </td>
-                     </tr>
+                        </td>
+                      </tr>
                   ))}
                 </tbody>
-               </table>
+              </table>
             </div>
           )}
         </Modal.Body>
@@ -1023,7 +1306,7 @@ const Reports = () => {
           </button>
           <button style={styles.btnPrimary} onClick={() => {
             setShowSchedulesModal(false);
-            setShowScheduleModal(true);
+            handleOpenScheduleModal();
           }}>
             <FiCalendar /> New Schedule
           </button>
