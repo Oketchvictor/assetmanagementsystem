@@ -2888,3 +2888,70 @@ select.form-ctrl option {
     padding-left: 6px;
   }
 }
+/* Add these styles to your existing App.css */
+
+/* Main Content Adjustments */
+.main-content {
+  flex: 1;
+  margin-left: 260px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main-content.expanded {
+  margin-left: 70px;
+}
+
+/* When sidebar is collapsed on desktop */
+@media (min-width: 993px) {
+  .main-content.sidebar-collapsed {
+    margin-left: 70px;
+  }
+  
+  .main-content.sidebar-expanded {
+    margin-left: 260px;
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 992px) {
+  .main-content {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+}
+
+/* Ensure content doesn't overflow */
+.content {
+  flex: 1;
+  padding: 24px 28px;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* Sidebar overlay for mobile */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 399;
+  backdrop-filter: blur(2px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .content {
+    padding: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 12px !important;
+  }
+}
