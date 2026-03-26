@@ -33,6 +33,23 @@ import authService from './services/authService';
 // Styles
 import './App.css';
 
+// In your AppContent component, update the main-content div:
+
+<div className={`main-content ${sidebarCollapsed ? 'expanded sidebar-collapsed' : 'sidebar-expanded'}`}>
+  <Topbar 
+    pageName={getPageName()} 
+    onMenuClick={handleMenuClick}
+    onSearchClick={() => setShowSearchModal(true)}
+  />
+  
+  <div className="content">
+    <Routes>
+      {/* Your routes here */}
+    </Routes>
+  </div>
+  
+  <Footer />
+</div>
 function AppContent() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -172,7 +189,7 @@ function AppContent() {
     <div className="app">
       <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
       
-      <div className={`main-content ${sidebarCollapsed ? 'expanded' : ''}`}>
+      <div className={`main-content ${sidebarCollapsed ? 'expanded sidebar-collapsed' : 'sidebar-expanded'}`}>
         <Topbar 
           pageName={getPageName()} 
           onMenuClick={handleMenuClick}

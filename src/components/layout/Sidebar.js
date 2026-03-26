@@ -122,14 +122,15 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     },
     sidebar: {
       width: isMobile ? '280px' : (collapsed ? '70px' : '260px'),
-      minHeight: '100vh',
+      height: '100vh',
       background: '#0C1829',
       borderRight: '1px solid #1C2E44',
       display: 'flex',
       flexDirection: 'column',
       boxShadow: '4px 0 24px rgba(0, 0, 0, 0.2)',
       transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      position: 'relative'
     },
     brand: {
       padding: '18px 16px 15px',
@@ -158,21 +159,26 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     },
     brandInfo: {
       overflow: 'hidden',
-      whiteSpace: 'nowrap'
+      whiteSpace: 'nowrap',
+      flex: 1
     },
     brandName: {
       fontFamily: 'Syne, sans-serif',
       fontSize: '13px',
       fontWeight: 700,
       color: '#D8EAF8',
-      lineHeight: 1.2
+      lineHeight: 1.2,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis'
     },
     brandSub: {
       fontSize: '9px',
       color: '#3D5A78',
       letterSpacing: '0.13em',
       textTransform: 'uppercase',
-      marginTop: '1px'
+      marginTop: '1px',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis'
     },
     mobileCloseBtn: {
       position: 'absolute',
@@ -237,7 +243,8 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       padding: '11px 13px',
       borderTop: '1px solid #1C2E44',
       flexShrink: 0,
-      marginTop: 'auto'
+      marginTop: 'auto',
+      background: '#0C1829'
     },
     userChip: {
       display: 'flex',
@@ -248,7 +255,8 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       cursor: 'pointer',
       transition: 'background 0.15s',
       justifyContent: (!showText() && !isMobile) ? 'center' : 'flex-start',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      width: '100%'
     },
     avatar: {
       width: '32px',
@@ -266,12 +274,13 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     userInfo: {
       flex: 1,
       overflow: 'hidden',
+      minWidth: 0,
       display: showText() ? 'block' : 'none'
     },
     userName: {
       fontSize: '12.5px',
       fontWeight: 600,
-      lineHeight: 1.2,
+      lineHeight: 1.3,
       color: '#D8EAF8',
       whiteSpace: 'nowrap',
       overflow: 'hidden',
@@ -282,7 +291,8 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       color: '#3D5A78',
       whiteSpace: 'nowrap',
       overflow: 'hidden',
-      textOverflow: 'ellipsis'
+      textOverflow: 'ellipsis',
+      marginTop: '2px'
     },
     userArrow: {
       color: '#3D5A78',
@@ -311,7 +321,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     },
     desktopToggleBtn: {
       position: 'absolute',
-      bottom: '90px',
+      bottom: '100px',
       right: '-12px',
       width: '24px',
       height: '24px',
@@ -466,8 +476,67 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         </div>
       </div>
 
-      {/* Add responsive styles */}
+      {/* Global Styles */}
       <style>{`
+        /* Base Sidebar Styles */
+        .sidebar-container {
+          position: fixed;
+          top: 0;
+          left: 0;
+          height: 100vh;
+          z-index: 400;
+        }
+        
+        /* Nav Link Styles */
+        .nav-link {
+          text-decoration: none;
+          transition: all 0.16s;
+        }
+        
+        .nav-link:hover {
+          background: rgba(255, 255, 255, 0.04);
+          color: #D8EAF8 !important;
+          border-left-color: #243B54 !important;
+        }
+        
+        .nav-link.active {
+          background: rgba(0, 229, 168, 0.08) !important;
+          color: #00E5A8 !important;
+          border-left-color: #00E5A8 !important;
+          font-weight: 600 !important;
+        }
+        
+        .nav-link.active::after {
+          content: '';
+          position: absolute;
+          right: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 3px;
+          height: 18px;
+          background: #00E5A8;
+          border-radius: 3px 0 0 3px;
+        }
+        
+        /* Scrollbar Styling */
+        .sidebar-nav::-webkit-scrollbar {
+          width: 3px;
+        }
+        
+        .sidebar-nav::-webkit-scrollbar-track {
+          background: #162234;
+        }
+        
+        .sidebar-nav::-webkit-scrollbar-thumb {
+          background: #243B54;
+          border-radius: 3px;
+        }
+        
+        .sidebar-nav::-webkit-scrollbar-thumb:hover {
+          background: #00E5A8;
+        }
+        
+        /* Responsive Styles */
         @media (max-width: 992px) {
           .main-content {
             margin-left: 0 !important;
@@ -511,7 +580,13 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
           }
         }
         
-        /* Ensure text doesn't get cut off */
+        /* Desktop Toggle Button Hover */
+        .desktop-toggle-btn:hover {
+          background: #1C2E44 !important;
+          color: #00E5A8 !important;
+        }
+        
+        /* Ensure User Section is Always Visible */
         .user-info {
           min-width: 0;
           flex: 1;
@@ -519,23 +594,10 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         
         .user-name, .user-role {
           max-width: 100%;
+          word-break: break-word;
         }
         
-        /* Scrollbar styling for sidebar nav */
-        .sidebar-nav::-webkit-scrollbar {
-          width: 3px;
-        }
-        
-        .sidebar-nav::-webkit-scrollbar-track {
-          background: #162234;
-        }
-        
-        .sidebar-nav::-webkit-scrollbar-thumb {
-          background: #243B54;
-          border-radius: 3px;
-        }
-        
-        /* Ensure brand text doesn't overflow */
+        /* Brand Text Overflow */
         .brand-info {
           min-width: 0;
           flex: 1;
@@ -545,6 +607,62 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+        }
+        
+        /* Ensure Sidebar Footer Stays at Bottom */
+        .sidebar-footer {
+          margin-top: auto;
+          width: 100%;
+        }
+        
+        /* Collapsed Sidebar Styles */
+        .sidebar-collapsed .nav-text,
+        .sidebar-collapsed .nav-section,
+        .sidebar-collapsed .brand-info,
+        .sidebar-collapsed .user-info,
+        .sidebar-collapsed .user-arrow {
+          display: none !important;
+        }
+        
+        .sidebar-collapsed .user-chip {
+          justify-content: center;
+        }
+        
+        .sidebar-collapsed .nav-link {
+          justify-content: center;
+          padding: 9px 0;
+        }
+        
+        .sidebar-collapsed .nav-icon {
+          margin-right: 0;
+        }
+        
+        /* Animation for Sidebar */
+        @keyframes sidebarFadeIn {
+          from {
+            opacity: 0;
+            transform: translateX(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        .sidebar-container {
+          animation: sidebarFadeIn 0.3s ease;
+        }
+        
+        /* Ensure no content is cut off */
+        * {
+          box-sizing: border-box;
+        }
+        
+        /* Fix for main content when sidebar is collapsed on desktop */
+        @media (min-width: 993px) {
+          .main-content {
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          }
         }
       `}</style>
     </>
