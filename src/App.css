@@ -2550,3 +2550,341 @@ select.form-ctrl option {
 .p-4 {
   padding: 1.5rem;
 }
+/* Add to existing App.css */
+
+/* Main content responsive adjustments */
+@media (max-width: 992px) {
+  .main-content {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+  
+  .content {
+    padding: 16px !important;
+  }
+  
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .page-header h1 {
+    font-size: 20px !important;
+  }
+  
+  .stat-card {
+    padding: 12px !important;
+  }
+  
+  .stat-value {
+    font-size: 24px !important;
+  }
+  
+  .data-card {
+    margin-bottom: 16px !important;
+  }
+  
+  .dc-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+  
+  .dc-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .table-search {
+    width: 100% !important;
+  }
+  
+  .tab-bar {
+    overflow-x: auto;
+    width: 100%;
+  }
+  
+  .tab-btn {
+    white-space: nowrap;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .action-buttons .btn-assign {
+    width: auto;
+    min-width: 80px;
+  }
+  
+  .timeline {
+    padding-left: 16px;
+  }
+  
+  .detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+  
+  .modal-body {
+    padding: 16px !important;
+  }
+  
+  .modal-head {
+    padding: 16px !important;
+  }
+  
+  .modal-foot {
+    padding: 12px 16px !important;
+  }
+  
+  .footer-links {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 12px !important;
+  }
+  
+  .page-header h1 {
+    font-size: 18px !important;
+  }
+  
+  .page-header p {
+    font-size: 11px !important;
+  }
+  
+  .stat-card .stat-value {
+    font-size: 20px !important;
+  }
+  
+  .stat-card .stat-label {
+    font-size: 9px !important;
+  }
+  
+  .stat-icon {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 14px !important;
+  }
+  
+  .custom-table thead th {
+    font-size: 9px !important;
+    padding: 8px 10px !important;
+  }
+  
+  .custom-table tbody td {
+    padding: 8px 10px !important;
+    font-size: 11px !important;
+  }
+  
+  .badge {
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+  }
+  
+  .loc-badge {
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+  }
+  
+  .act-btn {
+    padding: 3px 5px !important;
+  }
+  
+  .btn-primary-custom, .btn-outline {
+    padding: 6px 14px !important;
+    font-size: 11px !important;
+  }
+  
+  .chip {
+    padding: 3px 10px !important;
+    font-size: 10px !important;
+  }
+  
+  .alert-bar {
+    padding: 8px 12px !important;
+    font-size: 11px !important;
+  }
+  
+  .timeline-dot {
+    width: 7px !important;
+    height: 7px !important;
+    left: -14px !important;
+  }
+  
+  .timeline-text {
+    font-size: 11px !important;
+  }
+  
+  .timeline-time {
+    font-size: 9px !important;
+  }
+  
+  .room-card .room-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .room-count {
+    font-size: 18px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 8px !important;
+  }
+  
+  .page-header {
+    margin-bottom: 16px !important;
+  }
+  
+  .page-header h1 {
+    font-size: 16px !important;
+  }
+  
+  .page-header p {
+    font-size: 10px !important;
+  }
+  
+  .stat-card {
+    padding: 10px !important;
+  }
+  
+  .stat-value {
+    font-size: 18px !important;
+  }
+  
+  .stat-label {
+    font-size: 8px !important;
+  }
+  
+  .stat-icon {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 12px !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .custom-table thead th {
+    font-size: 8px !important;
+    padding: 6px 8px !important;
+  }
+  
+  .custom-table tbody td {
+    padding: 6px 8px !important;
+    font-size: 10px !important;
+  }
+  
+  .btn-primary-custom, .btn-outline {
+    padding: 5px 12px !important;
+    font-size: 10px !important;
+  }
+  
+  .chip {
+    padding: 2px 8px !important;
+    font-size: 9px !important;
+  }
+  
+  .tab-btn {
+    padding: 8px 12px !important;
+    font-size: 11px !important;
+  }
+  
+  .modal-head .modal-title {
+    font-size: 12px !important;
+  }
+  
+  .modal-close {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 14px !important;
+  }
+  
+  .footer-text, .footer-link {
+    font-size: 10px !important;
+  }
+  
+  .footer-version {
+    font-size: 9px !important;
+  }
+}
+
+/* Hide scrollbar on mobile for better UX */
+@media (max-width: 992px) {
+  ::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+}
+
+/* Improve touch targets on mobile */
+@media (max-width: 768px) {
+  button, 
+  .act-btn, 
+  .nav-link,
+  .chip,
+  .tab-btn,
+  .btn-primary-custom,
+  .btn-outline {
+    min-height: 36px;
+  }
+  
+  input, 
+  select, 
+  textarea {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+}
+
+/* Animation for mobile sidebar */
+.sidebar-container {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ensure content doesn't overflow */
+.content {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* Responsive tables */
+@media (max-width: 768px) {
+  .custom-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Card grid responsiveness */
+.row.g-3 {
+  margin-right: -8px;
+  margin-left: -8px;
+}
+
+.row.g-3 > [class*="col-"] {
+  padding-right: 8px;
+  padding-left: 8px;
+}
+
+@media (max-width: 768px) {
+  .row.g-3 {
+    margin-right: -6px;
+    margin-left: -6px;
+  }
+  
+  .row.g-3 > [class*="col-"] {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+}
