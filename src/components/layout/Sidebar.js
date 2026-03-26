@@ -8,7 +8,7 @@ import {
 
 const Sidebar = ({ collapsed, setCollapsed }) => {
   const location = useLocation();
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 992);
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 992 : false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Check if screen is mobile
@@ -100,245 +100,13 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     return !collapsed;
   };
 
-  const styles = {
-    overlay: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0, 0, 0, 0.5)',
-      zIndex: 399,
-      display: isMobile && mobileOpen ? 'block' : 'none',
-      backdropFilter: 'blur(2px)'
-    },
-    sidebarContainer: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      height: '100vh',
-      zIndex: 400,
-      transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-    },
-    sidebar: {
-      width: isMobile ? '280px' : (collapsed ? '70px' : '260px'),
-      height: '100vh',
-      background: '#0C1829',
-      borderRight: '1px solid #1C2E44',
-      display: 'flex',
-      flexDirection: 'column',
-      boxShadow: '4px 0 24px rgba(0, 0, 0, 0.2)',
-      transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      overflow: 'hidden',
-      position: 'relative'
-    },
-    brand: {
-      padding: '18px 16px 15px',
-      borderBottom: '1px solid #1C2E44',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '11px',
-      flexShrink: 0
-    },
-    brandIcon: {
-      width: '38px',
-      height: '38px',
-      borderRadius: '10px',
-      flexShrink: 0,
-      background: 'linear-gradient(135deg, #00E5A8, #00C49A)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      boxShadow: '0 0 24px rgba(0, 229, 168, 0.18)'
-    },
-    brandIconSpan: {
-      fontFamily: 'Syne, sans-serif',
-      fontWeight: 800,
-      fontSize: '18px',
-      color: '#07101F'
-    },
-    brandInfo: {
-      overflow: 'hidden',
-      whiteSpace: 'nowrap',
-      flex: 1
-    },
-    brandName: {
-      fontFamily: 'Syne, sans-serif',
-      fontSize: '13px',
-      fontWeight: 700,
-      color: '#D8EAF8',
-      lineHeight: 1.2,
-      overflow: 'hidden',
-      textOverflow: 'ellipsis'
-    },
-    brandSub: {
-      fontSize: '9px',
-      color: '#3D5A78',
-      letterSpacing: '0.13em',
-      textTransform: 'uppercase',
-      marginTop: '1px',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis'
-    },
-    mobileCloseBtn: {
-      position: 'absolute',
-      top: '20px',
-      right: '20px',
-      width: '32px',
-      height: '32px',
-      borderRadius: '8px',
-      background: '#162234',
-      border: '1px solid #1C2E44',
-      color: '#D8EAF8',
-      display: isMobile ? 'flex' : 'none',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-      transition: 'all 0.15s',
-      zIndex: 10
-    },
-    nav: {
-      flex: 1,
-      padding: '6px 0',
-      overflowY: 'auto',
-      overflowX: 'hidden'
-    },
-    navSection: {
-      padding: '14px 16px 4px',
-      fontSize: '9px',
-      letterSpacing: '0.15em',
-      textTransform: 'uppercase',
-      color: '#3D5A78',
-      fontWeight: 700,
-      display: showText() ? 'block' : 'none'
-    },
-    navLink: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-      padding: '9px 16px',
-      color: '#6B8FAE',
-      fontSize: '13px',
-      fontWeight: 500,
-      borderLeft: '3px solid transparent',
-      transition: 'all 0.16s',
-      position: 'relative',
-      textDecoration: 'none',
-      cursor: 'pointer'
-    },
-    navIcon: {
-      width: '17px',
-      textAlign: 'center',
-      fontSize: '13px',
-      flexShrink: 0,
-      opacity: 0.9
-    },
-    navText: {
-      flex: 1,
-      whiteSpace: 'nowrap',
-      overflow: 'hidden',
-      display: showText() ? 'block' : 'none'
-    },
-    sidebarFooter: {
-      padding: '11px 13px',
-      borderTop: '1px solid #1C2E44',
-      flexShrink: 0,
-      marginTop: 'auto',
-      background: '#0C1829'
-    },
-    userChip: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '9px',
-      padding: '8px 9px',
-      borderRadius: '9px',
-      cursor: 'pointer',
-      transition: 'background 0.15s',
-      justifyContent: (!showText() && !isMobile) ? 'center' : 'flex-start',
-      overflow: 'hidden',
-      width: '100%'
-    },
-    avatar: {
-      width: '32px',
-      height: '32px',
-      borderRadius: '50%',
-      flexShrink: 0,
-      background: 'linear-gradient(135deg, #00E5A8, #4F9EF8)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontWeight: 800,
-      fontSize: '11px',
-      color: '#07101F'
-    },
-    userInfo: {
-      flex: 1,
-      overflow: 'hidden',
-      minWidth: 0,
-      display: showText() ? 'block' : 'none'
-    },
-    userName: {
-      fontSize: '12.5px',
-      fontWeight: 600,
-      lineHeight: 1.3,
-      color: '#D8EAF8',
-      whiteSpace: 'nowrap',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis'
-    },
-    userRole: {
-      fontSize: '10.5px',
-      color: '#3D5A78',
-      whiteSpace: 'nowrap',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      marginTop: '2px'
-    },
-    userArrow: {
-      color: '#3D5A78',
-      fontSize: '9px',
-      marginLeft: 'auto',
-      flexShrink: 0,
-      display: showText() ? 'block' : 'none'
-    },
-    mobileToggleBtn: {
-      position: 'fixed',
-      top: '12px',
-      left: '16px',
-      width: '40px',
-      height: '40px',
-      borderRadius: '10px',
-      background: '#0C1829',
-      border: '1px solid #1C2E44',
-      color: '#00E5A8',
-      display: isMobile ? 'flex' : 'none',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-      zIndex: 450,
-      transition: 'all 0.15s',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
-    },
-    desktopToggleBtn: {
-      position: 'absolute',
-      bottom: '100px',
-      right: '-12px',
-      width: '24px',
-      height: '24px',
-      borderRadius: '50%',
-      background: '#162234',
-      border: '1px solid #243B54',
-      color: '#D8EAF8',
-      display: isMobile ? 'none' : 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-      transition: 'all 0.2s',
-      zIndex: 10
-    }
+  // Determine sidebar width
+  const getSidebarWidth = () => {
+    if (isMobile) return '280px';
+    return collapsed ? '70px' : '260px';
   };
 
-  // Determine if sidebar should be visible
+  // Determine if sidebar should be visible on mobile
   const getSidebarTransform = () => {
     if (!isMobile) return 'translateX(0)';
     return mobileOpen ? 'translateX(0)' : 'translateX(-100%)';
@@ -347,12 +115,39 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
   return (
     <>
       {/* Mobile Overlay */}
-      <div style={styles.overlay} onClick={() => setMobileOpen(false)}></div>
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.5)',
+        zIndex: 399,
+        display: isMobile && mobileOpen ? 'block' : 'none',
+        backdropFilter: 'blur(2px)'
+      }} onClick={() => setMobileOpen(false)}></div>
       
       {/* Mobile Toggle Button */}
       <button 
         className="mobile-toggle-btn"
-        style={styles.mobileToggleBtn}
+        style={{
+          position: 'fixed',
+          top: '12px',
+          left: '16px',
+          width: '40px',
+          height: '40px',
+          borderRadius: '10px',
+          background: '#0C1829',
+          border: '1px solid #1C2E44',
+          color: '#00E5A8',
+          display: isMobile ? 'flex' : 'none',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 450,
+          transition: 'all 0.15s',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+        }}
         onClick={toggleMobileSidebar}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = '#162234';
@@ -370,14 +165,46 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       <div 
         className="sidebar-container"
         style={{
-          ...styles.sidebarContainer,
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          height: '100vh',
+          zIndex: 400,
+          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           transform: getSidebarTransform()
         }}
       >
-        <div style={styles.sidebar}>
+        <div style={{
+          width: getSidebarWidth(),
+          height: '100vh',
+          background: '#0C1829',
+          borderRight: '1px solid #1C2E44',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '4px 0 24px rgba(0, 0, 0, 0.2)',
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          overflow: 'hidden',
+          position: 'relative'
+        }}>
           {/* Mobile Close Button */}
           <button 
-            style={styles.mobileCloseBtn}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: '#162234',
+              border: '1px solid #1C2E44',
+              color: '#D8EAF8',
+              display: isMobile ? 'flex' : 'none',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              zIndex: 10
+            }}
             onClick={() => setMobileOpen(false)}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = '#1C2E44';
@@ -391,22 +218,79 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
             <FiX size={18} />
           </button>
           
-          <div style={styles.brand}>
-            <div style={styles.brandIcon}>
-              <span style={styles.brandIconSpan}>S</span>
+          {/* Brand Section */}
+          <div style={{
+            padding: '18px 16px 15px',
+            borderBottom: '1px solid #1C2E44',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '11px',
+            flexShrink: 0
+          }}>
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              flexShrink: 0,
+              background: 'linear-gradient(135deg, #00E5A8, #00C49A)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 24px rgba(0, 229, 168, 0.18)'
+            }}>
+              <span style={{
+                fontFamily: 'Syne, sans-serif',
+                fontWeight: 800,
+                fontSize: '18px',
+                color: '#07101F'
+              }}>S</span>
             </div>
             {showText() && (
-              <div style={styles.brandInfo}>
-                <div style={styles.brandName}>Seovo Solutions</div>
-                <div style={styles.brandSub}>Asset Management</div>
+              <div style={{
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                flex: 1
+              }}>
+                <div style={{
+                  fontFamily: 'Syne, sans-serif',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: '#D8EAF8',
+                  lineHeight: 1.2,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>Seovo Solutions</div>
+                <div style={{
+                  fontSize: '9px',
+                  color: '#3D5A78',
+                  letterSpacing: '0.13em',
+                  textTransform: 'uppercase',
+                  marginTop: '1px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>Asset Management</div>
               </div>
             )}
           </div>
 
-          <nav style={styles.nav}>
+          {/* Navigation */}
+          <nav style={{
+            flex: 1,
+            padding: '6px 0',
+            overflowY: 'auto',
+            overflowX: 'hidden'
+          }}>
             {navItems.map((section, idx) => (
               <React.Fragment key={idx}>
-                <div style={styles.navSection}>{section.section}</div>
+                <div style={{
+                  padding: '14px 16px 4px',
+                  fontSize: '9px',
+                  letterSpacing: '0.15em',
+                  textTransform: 'uppercase',
+                  color: '#3D5A78',
+                  fontWeight: 700,
+                  display: showText() ? 'block' : 'none'
+                }}>{section.section}</div>
                 {section.items.map((item, itemIdx) => {
                   const badgeStyle = getBadgeStyle(item.badge);
                   return (
@@ -415,17 +299,37 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
                       to={item.path}
                       className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                       style={({ isActive }) => ({
-                        ...styles.navLink,
-                        background: isActive ? 'rgba(0, 229, 168, 0.08)' : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '9px 16px',
                         color: isActive ? '#00E5A8' : '#6B8FAE',
+                        fontSize: '13px',
+                        fontWeight: isActive ? 600 : 500,
+                        borderLeft: '3px solid',
                         borderLeftColor: isActive ? '#00E5A8' : 'transparent',
-                        fontWeight: isActive ? 600 : 500
+                        transition: 'all 0.16s',
+                        position: 'relative',
+                        textDecoration: 'none',
+                        cursor: 'pointer',
+                        background: isActive ? 'rgba(0, 229, 168, 0.08)' : 'transparent'
                       })}
                     >
-                      <span style={styles.navIcon}>{item.icon}</span>
+                      <span style={{
+                        width: '17px',
+                        textAlign: 'center',
+                        fontSize: '13px',
+                        flexShrink: 0,
+                        opacity: 0.9
+                      }}>{item.icon}</span>
                       {showText() && (
                         <>
-                          <span style={styles.navText}>{item.text}</span>
+                          <span style={{
+                            flex: 1,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            display: 'block'
+                          }}>{item.text}</span>
                           {item.badge && (
                             <span style={{
                               marginLeft: 'auto',
@@ -447,20 +351,92 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
             ))}
           </nav>
 
-          <div style={styles.sidebarFooter}>
-            <div style={styles.userChip}>
-              <div style={styles.avatar}>AS</div>
-              <div style={styles.userInfo}>
-                <div style={styles.userName}>Admin Seovo</div>
-                <div style={styles.userRole}>Store Manager</div>
-              </div>
-              {showText() && <FiChevronRight style={styles.userArrow} />}
+          {/* User Section - Fixed at Bottom */}
+          <div style={{
+            padding: '11px 13px',
+            borderTop: '1px solid #1C2E44',
+            flexShrink: 0,
+            marginTop: 'auto',
+            background: '#0C1829'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '9px',
+              padding: '8px 9px',
+              borderRadius: '9px',
+              cursor: 'pointer',
+              transition: 'background 0.15s',
+              justifyContent: (!showText() && !isMobile) ? 'center' : 'flex-start',
+              overflow: 'hidden',
+              width: '100%'
+            }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                flexShrink: 0,
+                background: 'linear-gradient(135deg, #00E5A8, #4F9EF8)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                fontSize: '11px',
+                color: '#07101F'
+              }}>AS</div>
+              {showText() && (
+                <div style={{
+                  flex: 1,
+                  overflow: 'hidden',
+                  minWidth: 0
+                }}>
+                  <div style={{
+                    fontSize: '12.5px',
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    color: '#D8EAF8',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>Admin Seovo</div>
+                  <div style={{
+                    fontSize: '10.5px',
+                    color: '#3D5A78',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    marginTop: '2px'
+                  }}>Store Manager</div>
+                </div>
+              )}
+              {showText() && <FiChevronRight style={{
+                color: '#3D5A78',
+                fontSize: '9px',
+                marginLeft: 'auto',
+                flexShrink: 0
+              }} />}
             </div>
           </div>
           
           {/* Desktop Toggle Button */}
           <button 
-            style={styles.desktopToggleBtn}
+            style={{
+              position: 'absolute',
+              bottom: '100px',
+              right: '-12px',
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              background: '#162234',
+              border: '1px solid #243B54',
+              color: '#D8EAF8',
+              display: isMobile ? 'none' : 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              zIndex: 10
+            }}
             onClick={() => setCollapsed(!collapsed)}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = '#1C2E44';
@@ -476,195 +452,120 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         </div>
       </div>
 
-      {/* Global Styles */}
-      <style>{`
-        /* Base Sidebar Styles */
-        .sidebar-container {
-          position: fixed;
-          top: 0;
-          left: 0;
-          height: 100vh;
-          z-index: 400;
-        }
-        
-        /* Nav Link Styles */
-        .nav-link {
-          text-decoration: none;
-          transition: all 0.16s;
-        }
-        
-        .nav-link:hover {
-          background: rgba(255, 255, 255, 0.04);
-          color: #D8EAF8 !important;
-          border-left-color: #243B54 !important;
-        }
-        
-        .nav-link.active {
-          background: rgba(0, 229, 168, 0.08) !important;
-          color: #00E5A8 !important;
-          border-left-color: #00E5A8 !important;
-          font-weight: 600 !important;
-        }
-        
-        .nav-link.active::after {
-          content: '';
-          position: absolute;
-          right: 0;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 3px;
-          height: 18px;
-          background: #00E5A8;
-          border-radius: 3px 0 0 3px;
-        }
-        
-        /* Scrollbar Styling */
-        .sidebar-nav::-webkit-scrollbar {
-          width: 3px;
-        }
-        
-        .sidebar-nav::-webkit-scrollbar-track {
-          background: #162234;
-        }
-        
-        .sidebar-nav::-webkit-scrollbar-thumb {
-          background: #243B54;
-          border-radius: 3px;
-        }
-        
-        .sidebar-nav::-webkit-scrollbar-thumb:hover {
-          background: #00E5A8;
-        }
-        
-        /* Responsive Styles */
-        @media (max-width: 992px) {
-          .main-content {
-            margin-left: 0 !important;
-            width: 100%;
+      {/* Global Styles - Add to head */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          /* Nav Link Hover Effects */
+          .nav-link:hover {
+            background: rgba(255, 255, 255, 0.04) !important;
+            color: #D8EAF8 !important;
+            border-left-color: #243B54 !important;
           }
           
-          .mobile-toggle-btn:hover {
-            background: #162234 !important;
-            border-color: #243B54 !important;
+          .nav-link.active::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 18px;
+            background: #00E5A8;
+            border-radius: 3px 0 0 3px;
           }
           
-          .mobile-toggle-btn:active {
-            transform: scale(0.95);
-          }
-        }
-        
-        @media (max-width: 768px) {
-          .mobile-toggle-btn {
-            width: 36px !important;
-            height: 36px !important;
-            top: 10px !important;
-            left: 12px !important;
+          /* Scrollbar Styling */
+          ::-webkit-scrollbar {
+            width: 3px;
           }
           
-          .sidebar {
-            width: 260px !important;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .mobile-toggle-btn {
-            width: 32px !important;
-            height: 32px !important;
-            top: 8px !important;
-            left: 8px !important;
+          ::-webkit-scrollbar-track {
+            background: #162234;
           }
           
-          .sidebar {
-            width: 100% !important;
-            max-width: 280px !important;
+          ::-webkit-scrollbar-thumb {
+            background: #243B54;
+            border-radius: 3px;
           }
-        }
-        
-        /* Desktop Toggle Button Hover */
-        .desktop-toggle-btn:hover {
-          background: #1C2E44 !important;
-          color: #00E5A8 !important;
-        }
-        
-        /* Ensure User Section is Always Visible */
-        .user-info {
-          min-width: 0;
-          flex: 1;
-        }
-        
-        .user-name, .user-role {
-          max-width: 100%;
-          word-break: break-word;
-        }
-        
-        /* Brand Text Overflow */
-        .brand-info {
-          min-width: 0;
-          flex: 1;
-        }
-        
-        .brand-name, .brand-sub {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        
-        /* Ensure Sidebar Footer Stays at Bottom */
-        .sidebar-footer {
-          margin-top: auto;
-          width: 100%;
-        }
-        
-        /* Collapsed Sidebar Styles */
-        .sidebar-collapsed .nav-text,
-        .sidebar-collapsed .nav-section,
-        .sidebar-collapsed .brand-info,
-        .sidebar-collapsed .user-info,
-        .sidebar-collapsed .user-arrow {
-          display: none !important;
-        }
-        
-        .sidebar-collapsed .user-chip {
-          justify-content: center;
-        }
-        
-        .sidebar-collapsed .nav-link {
-          justify-content: center;
-          padding: 9px 0;
-        }
-        
-        .sidebar-collapsed .nav-icon {
-          margin-right: 0;
-        }
-        
-        /* Animation for Sidebar */
-        @keyframes sidebarFadeIn {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
+          
+          ::-webkit-scrollbar-thumb:hover {
+            background: #00E5A8;
           }
-          to {
-            opacity: 1;
-            transform: translateX(0);
+          
+          /* Mobile Responsive */
+          @media (max-width: 992px) {
+            .main-content {
+              margin-left: 0 !important;
+              width: 100%;
+            }
+            
+            .mobile-toggle-btn:hover {
+              background: #162234 !important;
+              border-color: #243B54 !important;
+            }
+            
+            .mobile-toggle-btn:active {
+              transform: scale(0.95);
+            }
           }
-        }
-        
-        .sidebar-container {
-          animation: sidebarFadeIn 0.3s ease;
-        }
-        
-        /* Ensure no content is cut off */
-        * {
-          box-sizing: border-box;
-        }
-        
-        /* Fix for main content when sidebar is collapsed on desktop */
-        @media (min-width: 993px) {
+          
+          @media (max-width: 768px) {
+            .mobile-toggle-btn {
+              width: 36px !important;
+              height: 36px !important;
+              top: 10px !important;
+              left: 12px !important;
+            }
+          }
+          
+          @media (max-width: 480px) {
+            .mobile-toggle-btn {
+              width: 32px !important;
+              height: 32px !important;
+              top: 8px !important;
+              left: 8px !important;
+            }
+          }
+          
+          /* Desktop Toggle Button Hover */
+          .desktop-toggle-btn:hover {
+            background: #1C2E44 !important;
+            color: #00E5A8 !important;
+          }
+          
+          /* Sidebar Animation */
+          @keyframes sidebarFadeIn {
+            from {
+              opacity: 0;
+              transform: translateX(-20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(0);
+            }
+          }
+          
+          .sidebar-container {
+            animation: sidebarFadeIn 0.3s ease;
+          }
+          
+          /* Ensure Main Content Transitions */
           .main-content {
             transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           }
-        }
-      `}</style>
+          
+          /* Desktop styles */
+          @media (min-width: 993px) {
+            .main-content.sidebar-collapsed {
+              margin-left: 70px;
+            }
+            
+            .main-content.sidebar-expanded {
+              margin-left: 260px;
+            }
+          }
+        `
+      }} />
     </>
   );
 };
