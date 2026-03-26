@@ -1,22 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  FiMenu, 
-  FiBell, 
-  FiSearch, 
-  FiUser, 
-  FiHome, 
-  FiChevronRight,
-  FiLogOut,
-  FiUserCheck,
-  FiSettings,
-  FiTool,
-  FiRepeat,
-  FiUsers
+  FiMenu, FiBell, FiSearch, FiUser, FiHome, 
+  FiChevronRight, FiLogOut, FiUserCheck, FiSettings
 } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 
-const Topbar = ({ pageName, onMenuClick, onSearchClick }) => {
+const Topbar = ({ pageName, onSearchClick, onAddAssetClick }) => {
   const [notifications, setNotifications] = useState([
     { id: 1, type: 'danger', message: 'SV-O-005 MISSING — Epson Projector', link: '/other-assets' },
     { id: 2, type: 'warn', message: 'KEC 899T — insurance expired', link: '/other-assets' },
@@ -24,34 +14,16 @@ const Topbar = ({ pageName, onMenuClick, onSearchClick }) => {
   ]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [user, setUser] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Load user from localStorage
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error('Error parsing user:', e);
-      }
-    } else {
-      // Set default user as Admin Seovo
-      const defaultUser = {
-        username: 'admin',
-        email: 'admin@seovo.com',
-        first_name: 'Admin',
-        last_name: 'Seovo',
-        profile: {
-          role: 'admin',
-          phone: '+254700000000',
-          department: 'Administration'
-        }
-      };
-      setUser(defaultUser);
-      localStorage.setItem('user', JSON.stringify(defaultUser));
-    }
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 992);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   useEffect(() => {
@@ -73,23 +45,10 @@ const Topbar = ({ pageName, onMenuClick, onSearchClick }) => {
     navigate('/login');
   };
 
-  const getUserInitials = () => {
-    // Always return "AS" for Admin Seovo
-    return 'AS';
-  };
-
-  const getUserName = () => {
-    // Always return "Admin Seovo"
-    return 'Admin Seovo';
-  };
-
-  const getUserRole = () => {
-    return 'Administrator';
-  };
-
-  const getUserEmail = () => {
-    return 'admin@seovo.com';
-  };
+  const getUserInitials = () => 'AS';
+  const getUserName = () => 'Admin Seovo';
+  const getUserRole = () => 'Administrator';
+  const getUserEmail = () => 'admin@seovo.com';
 
   const styles = {
     topbar: {
@@ -100,7 +59,7 @@ const Topbar = ({ pageName, onMenuClick, onSearchClick }) => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0 24px',
+      padding: isMobile ? '0 16px' : '0 24px',
       position: 'sticky',
       top: 0,
       zIndex: 300
@@ -110,23 +69,9 @@ const Topbar = ({ pageName, onMenuClick, onSearchClick }) => {
       alignItems: 'center',
       gap: '12px'
     },
-    menuToggle: {
-      width: '34px',
-      height: '34px',
-      borderRadius: '9px',
-      background: 'transparent',
-      border: '1px solid #1C2E44',
-      color: '#6B8FAE',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '13px',
-      cursor: 'pointer',
-      transition: 'all 0.15s'
-    },
     pageTitle: {
       fontFamily: 'Syne, sans-serif',
-      fontSize: '15px',
+      fontSize: isMobile ? '14px' : '15px',
       fontWeight: 700,
       color: '#D8EAF8'
     },
@@ -155,8 +100,8 @@ const Topbar = ({ pageName, onMenuClick, onSearchClick }) => {
       gap: '6px'
     },
     iconBtn: {
-      width: '34px',
-      height: '34px',
+      width: isMobile ? '32px' : '34px',
+      height: isMobile ? '32px' : '34px',
       borderRadius: '9px',
       background: 'transparent',
       border: '1px solid #1C2E44',
@@ -190,61 +135,9 @@ const Topbar = ({ pageName, onMenuClick, onSearchClick }) => {
       padding: '1px 3px',
       color: '#3D5A78'
     },
-    notificationDropdown: {
-      position: 'absolute',
-      top: '45px',
-      right: '0',
-      width: '320px',
-      background: '#0C1829',
-      border: '1px solid #243B54',
-      borderRadius: '14px',
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
-      zIndex: 1000,
-      animation: 'dropdownIn 0.2s ease'
-    },
-    notificationHeader: {
-      padding: '14px 16px',
-      borderBottom: '1px solid #1C2E44',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      fontWeight: 600,
-      fontSize: '13px',
-      color: '#D8EAF8'
-    },
-    notificationCount: {
-      background: '#162234',
-      color: '#6B8FAE',
-      padding: '2px 8px',
-      borderRadius: '12px',
-      fontSize: '11px'
-    },
-    notificationList: {
-      maxHeight: '300px',
-      overflowY: 'auto'
-    },
-    notificationItem: {
-      padding: '12px 16px',
-      borderBottom: '1px solid #1C2E44',
-      cursor: 'pointer',
-      transition: 'background 0.15s'
-    },
-    notificationFooter: {
-      padding: '10px 16px',
-      borderTop: '1px solid #1C2E44',
-      textAlign: 'center'
-    },
-    btnLink: {
-      background: 'none',
-      border: 'none',
-      color: '#00E5A8',
-      fontSize: '11px',
-      fontWeight: 600,
-      cursor: 'pointer'
-    },
     userBtn: {
-      width: '34px',
-      height: '34px',
+      width: isMobile ? '32px' : '34px',
+      height: isMobile ? '32px' : '34px',
       borderRadius: '9px',
       background: 'transparent',
       border: '1px solid #1C2E44',
@@ -272,69 +165,14 @@ const Topbar = ({ pageName, onMenuClick, onSearchClick }) => {
       fontWeight: 800,
       color: '#07101F'
     },
-    userDropdown: {
-      position: 'absolute',
-      top: '45px',
-      right: '0',
-      width: '240px',
-      background: '#0C1829',
-      border: '1px solid #243B54',
-      borderRadius: '14px',
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
-      zIndex: 1000,
-      animation: 'dropdownIn 0.2s ease'
-    },
-    userInfo: {
-      padding: '16px',
-      textAlign: 'center'
-    },
-    userInfoName: {
-      fontWeight: 600,
-      fontSize: '14px',
-      color: '#D8EAF8',
-      marginBottom: '4px'
-    },
-    userInfoEmail: {
-      fontSize: '11px',
-      color: '#6B8FAE',
-      marginBottom: '4px',
-      wordBreak: 'break-all'
-    },
-    userInfoRole: {
-      fontSize: '10px',
-      color: '#00E5A8',
-      background: 'rgba(0, 229, 168, 0.12)',
-      display: 'inline-block',
-      padding: '2px 10px',
-      borderRadius: '20px'
-    },
-    dropdownDivider: {
-      height: '1px',
-      background: '#1C2E44',
-      margin: '8px 0'
-    },
-    dropdownItem: {
-      width: '100%',
-      padding: '10px 16px',
-      background: 'none',
-      border: 'none',
-      textAlign: 'left',
-      fontSize: '12px',
-      color: '#D8EAF8',
-      cursor: 'pointer',
-      transition: 'background 0.15s',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px'
-    },
     btnPrimaryCustom: {
       background: 'linear-gradient(135deg, #00E5A8, #00C49A)',
       color: '#07101F',
       border: 'none',
-      padding: '8px 18px',
+      padding: isMobile ? '6px 12px' : '8px 18px',
       borderRadius: '9px',
       fontWeight: 700,
-      fontSize: '12.5px',
+      fontSize: isMobile ? '11px' : '12.5px',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '7px',
@@ -347,23 +185,6 @@ const Topbar = ({ pageName, onMenuClick, onSearchClick }) => {
   return (
     <header style={styles.topbar}>
       <div style={styles.topbarLeft}>
-        <button 
-          className="menu-toggle" 
-          style={styles.menuToggle} 
-          onClick={onMenuClick}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#162234';
-            e.currentTarget.style.color = '#D8EAF8';
-            e.currentTarget.style.borderColor = '#243B54';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = '#6B8FAE';
-            e.currentTarget.style.borderColor = '#1C2E44';
-          }}
-        >
-          <FiMenu />
-        </button>
         <div>
           <div style={styles.pageTitle}>{pageName}</div>
           <div style={styles.breadcrumb}>
@@ -418,17 +239,48 @@ const Topbar = ({ pageName, onMenuClick, onSearchClick }) => {
           </button>
           
           {showNotifications && (
-            <div style={styles.notificationDropdown}>
-              <div style={styles.notificationHeader}>
+            <div style={{
+              position: 'absolute',
+              top: '45px',
+              right: '0',
+              width: '320px',
+              background: '#0C1829',
+              border: '1px solid #243B54',
+              borderRadius: '14px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
+              zIndex: 1000,
+              animation: 'dropdownIn 0.2s ease'
+            }}>
+              <div style={{
+                padding: '14px 16px',
+                borderBottom: '1px solid #1C2E44',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontWeight: 600,
+                fontSize: '13px',
+                color: '#D8EAF8'
+              }}>
                 <span>Notifications</span>
-                <span style={styles.notificationCount}>{notifications.length}</span>
+                <span style={{
+                  background: '#162234',
+                  color: '#6B8FAE',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '11px'
+                }}>{notifications.length}</span>
               </div>
-              <div style={styles.notificationList}>
+              <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                 {notifications.map(notif => (
                   <div 
                     key={notif.id} 
                     className={`notification-item ${notif.type}`}
-                    style={styles.notificationItem}
+                    style={{
+                      padding: '12px 16px',
+                      borderBottom: '1px solid #1C2E44',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s'
+                    }}
                     onClick={() => {
                       navigate(notif.link);
                       setShowNotifications(false);
@@ -440,10 +292,20 @@ const Topbar = ({ pageName, onMenuClick, onSearchClick }) => {
                   </div>
                 ))}
               </div>
-              <div style={styles.notificationFooter}>
+              <div style={{
+                padding: '10px 16px',
+                borderTop: '1px solid #1C2E44',
+                textAlign: 'center'
+              }}>
                 <button 
-                  className="btn-link" 
-                  style={styles.btnLink}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#00E5A8',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
                   onClick={() => {
                     setNotifications([]);
                     setShowNotifications(false);
@@ -480,16 +342,62 @@ const Topbar = ({ pageName, onMenuClick, onSearchClick }) => {
           </button>
 
           {showUserMenu && (
-            <div style={styles.userDropdown}>
-              <div style={styles.userInfo}>
-                <div style={styles.userInfoName}>{getUserName()}</div>
-                <div style={styles.userInfoEmail}>{getUserEmail()}</div>
-                <div style={styles.userInfoRole}>{getUserRole()}</div>
+            <div style={{
+              position: 'absolute',
+              top: '45px',
+              right: '0',
+              width: '240px',
+              background: '#0C1829',
+              border: '1px solid #243B54',
+              borderRadius: '14px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
+              zIndex: 1000,
+              animation: 'dropdownIn 0.2s ease'
+            }}>
+              <div style={{
+                padding: '16px',
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  color: '#D8EAF8',
+                  marginBottom: '4px'
+                }}>{getUserName()}</div>
+                <div style={{
+                  fontSize: '11px',
+                  color: '#6B8FAE',
+                  marginBottom: '4px'
+                }}>{getUserEmail()}</div>
+                <div style={{
+                  fontSize: '10px',
+                  color: '#00E5A8',
+                  background: 'rgba(0, 229, 168, 0.12)',
+                  display: 'inline-block',
+                  padding: '2px 10px',
+                  borderRadius: '20px'
+                }}>{getUserRole()}</div>
               </div>
-              <div style={styles.dropdownDivider}></div>
+              <div style={{
+                height: '1px',
+                background: '#1C2E44',
+                margin: '8px 0'
+              }}></div>
               <button 
-                className="dropdown-item" 
-                style={styles.dropdownItem}
+                style={{
+                  width: '100%',
+                  padding: '10px 16px',
+                  background: 'none',
+                  border: 'none',
+                  textAlign: 'left',
+                  fontSize: '12px',
+                  color: '#D8EAF8',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
                 onClick={() => {
                   navigate('/profile');
                   setShowUserMenu(false);
@@ -500,8 +408,20 @@ const Topbar = ({ pageName, onMenuClick, onSearchClick }) => {
                 <FiUserCheck size={14} /> My Profile
               </button>
               <button 
-                className="dropdown-item" 
-                style={styles.dropdownItem}
+                style={{
+                  width: '100%',
+                  padding: '10px 16px',
+                  background: 'none',
+                  border: 'none',
+                  textAlign: 'left',
+                  fontSize: '12px',
+                  color: '#D8EAF8',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
                 onClick={() => {
                   navigate('/settings');
                   setShowUserMenu(false);
@@ -511,58 +431,32 @@ const Topbar = ({ pageName, onMenuClick, onSearchClick }) => {
               >
                 <FiSettings size={14} /> Settings
               </button>
+              <div style={{
+                height: '1px',
+                background: '#1C2E44',
+                margin: '8px 0'
+              }}></div>
               <button 
-                className="dropdown-item" 
-                style={styles.dropdownItem}
-                onClick={() => {
-                  navigate('/staff');
-                  setShowUserMenu(false);
+                style={{
+                  width: '100%',
+                  padding: '10px 16px',
+                  background: 'none',
+                  border: 'none',
+                  textAlign: 'left',
+                  fontSize: '12px',
+                  color: '#FF5A65',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#162234'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-              >
-                <FiUsers size={14} /> Staff Directory
-              </button>
-              <button 
-                className="dropdown-item" 
-                style={styles.dropdownItem}
-                onClick={() => {
-                  navigate('/transfers');
-                  setShowUserMenu(false);
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#162234'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-              >
-                <FiRepeat size={14} /> Transfers
-              </button>
-              <button 
-                className="dropdown-item" 
-                style={styles.dropdownItem}
-                onClick={() => {
-                  navigate('/maintenance');
-                  setShowUserMenu(false);
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#162234'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-              >
-                <FiTool size={14} /> Maintenance
-              </button>
-              <div style={styles.dropdownDivider}></div>
-              <button 
-                className="dropdown-item logout" 
-                style={{ ...styles.dropdownItem, color: '#FF5A65' }}
                 onClick={() => {
                   handleLogout();
                   setShowUserMenu(false);
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 90, 101, 0.09)';
-                  e.currentTarget.style.color = '#FF5A65';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = '#FF5A65';
-                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 90, 101, 0.09)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >
                 <FiLogOut size={14} /> Logout
               </button>
@@ -573,7 +467,7 @@ const Topbar = ({ pageName, onMenuClick, onSearchClick }) => {
         <button 
           className="btn-primary-custom" 
           style={styles.btnPrimaryCustom} 
-          onClick={() => navigate('/add-asset')}
+          onClick={onAddAssetClick}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-1px)';
             e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 229, 168, 0.36)';
@@ -587,41 +481,43 @@ const Topbar = ({ pageName, onMenuClick, onSearchClick }) => {
         </button>
       </div>
 
-      <style>{`
-        @keyframes dropdownIn {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes dropdownIn {
+            from {
+              opacity: 0;
+              transform: translateY(-10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
           }
-          to {
-            opacity: 1;
-            transform: translateY(0);
+          
+          .notification-item.danger {
+            border-left: 3px solid #FF5A65;
           }
-        }
-        
-        .notification-item.danger {
-          border-left: 3px solid #FF5A65;
-        }
-        .notification-item.warn {
-          border-left: 3px solid #FFC542;
-        }
-        .notification-item.info {
-          border-left: 3px solid #4F9EF8;
-        }
-        
-        .breadcrumb a:hover {
-          color: #00E5A8;
-        }
-        
-        @media (max-width: 768px) {
-          .btn-primary-custom span {
-            display: none;
+          .notification-item.warn {
+            border-left: 3px solid #FFC542;
           }
-          .btn-primary-custom {
-            padding: 8px;
+          .notification-item.info {
+            border-left: 3px solid #4F9EF8;
           }
-        }
-      `}</style>
+          
+          .breadcrumb a:hover {
+            color: #00E5A8;
+          }
+          
+          @media (max-width: 768px) {
+            .btn-primary-custom span {
+              display: none;
+            }
+            .btn-primary-custom {
+              padding: 8px !important;
+            }
+          }
+        `
+      }} />
     </header>
   );
 };

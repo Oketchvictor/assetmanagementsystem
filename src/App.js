@@ -27,42 +27,33 @@ import AddAsset from './pages/AddAsset';
 import GlobalSearchModal from './components/modals/GlobalSearchModal';
 import AddAssetModal from './components/modals/AddAssetModal';
 
-// Services
-import authService from './services/authService';
-
-// Styles
-import './App.css';
-
-// In your AppContent component, update the main-content div:
-
-<div className={`main-content ${sidebarCollapsed ? 'expanded sidebar-collapsed' : 'sidebar-expanded'}`}>
-  <Topbar 
-    pageName={getPageName()} 
-    onMenuClick={handleMenuClick}
-    onSearchClick={() => setShowSearchModal(true)}
-  />
-  
-  <div className="content">
-    <Routes>
-      {/* Your routes here */}
-    </Routes>
-  </div>
-  
-  <Footer />
-</div>
 function AppContent() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showAddAssetModal, setShowAddAssetModal] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // Set to true for demo
-  const [loading, setLoading] = useState(false);
   const location = useLocation();
 
+  // Check if screen is mobile
   useEffect(() => {
-    // Check for user in localStorage
-    const user = localStorage.getItem('user');
-    if (!user) {
-      // Set default user for demo
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 992);
+      // Auto collapse sidebar on mobile
+      if (window.innerWidth <= 992) {
+        setSidebarCollapsed(true);
+      } else {
+        setSidebarCollapsed(false);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Set default user if not logged in (for demo)
+  useEffect(() => {
+    if (!localStorage.getItem('user')) {
       const defaultUser = {
         username: 'admin',
         email: 'admin@seovo.com',
@@ -70,7 +61,7 @@ function AppContent() {
         last_name: 'Seovo',
         profile: {
           role: 'admin',
-          phone: '+254748370734',
+          phone: '+254700000000',
           department: 'Administration'
         }
       };
@@ -96,10 +87,6 @@ function AppContent() {
     return path.substring(1).charAt(0).toUpperCase() + path.slice(2);
   };
 
-  const handleMenuClick = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
-
   const handleAddAssetClick = () => {
     setShowAddAssetModal(true);
   };
@@ -109,94 +96,146 @@ function AppContent() {
     setShowAddAssetModal(false);
   };
 
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        background: '#07101F'
-      }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          border: '3px solid #162234',
-          borderTopColor: '#00E5A8',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }}></div>
-        <style>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
-    );
-  }
+  // Get the appropriate margin based on sidebar state
+  const getMainContentMargin = () => {
+    if (isMobile) return '0';
+    return sidebarCollapsed ? '70px' : '260px';
+  };
 
-  if (!isAuthenticated) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        background: '#07101F'
-      }}>
-        <div style={{
-          background: '#0F1A2B',
-          border: '1px solid #1C2E44',
-          borderRadius: '14px',
-          padding: '40px',
-          textAlign: 'center',
-          maxWidth: '400px'
-        }}>
-          <h1 style={{ color: '#00E5A8', marginBottom: '20px' }}>Seovo AMS</h1>
-          <p style={{ color: '#D8EAF8', marginBottom: '20px' }}>Please log in to access the asset management system.</p>
-          <button
-            onClick={() => {
-              setIsAuthenticated(true);
-              const defaultUser = {
-                username: 'admin',
-                email: 'admin@seovo.com',
-                first_name: 'Admin',
-                last_name: 'Seovo',
-                profile: { role: 'admin', phone: '+254700000000', department: 'Administration' }
-              };
-              localStorage.setItem('user', JSON.stringify(defaultUser));
-              localStorage.setItem('token', 'demo-token-12345');
-            }}
-            style={{
-              background: 'linear-gradient(135deg, #00E5A8, #00C49A)',
-              color: '#07101F',
-              border: 'none',
-              padding: '10px 30px',
-              borderRadius: '8px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            Login as Admin Seovo
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const styles = {
+    app: {
+      display: 'flex',
+      minHeight: '100vh',
+      position: 'relative',
+      zIndex: 1
+    },
+    mainContent: {
+      flex: 1,
+      marginLeft: getMainContentMargin(),
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: '100vh',
+      transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      width: '100%'
+    },
+    content: {
+      flex: 1,
+      padding: '24px 28px',
+      overflowX: 'hidden',
+      width: '100%'
+    }
+  };
+
+  // Add global styles
+  const globalStyles = `
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      height: 100%;
+      background: #07101F;
+      color: #D8EAF8;
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      scroll-behavior: smooth;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 992px) {
+      .main-content {
+        margin-left: 0 !important;
+      }
+      
+      .content {
+        padding: 16px !important;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .content {
+        padding: 12px !important;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .content {
+        padding: 8px !important;
+      }
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #0C1829;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #243B54;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #00E5A8;
+    }
+    
+    /* Animation keyframes */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+    
+    @keyframes slideIn {
+      from {
+        transform: translateX(40px);
+        opacity: 0;
+      }
+      to {
+        transform: none;
+        opacity: 1;
+      }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    
+    .slide-in {
+      animation: slideIn 0.25s ease both;
+    }
+  `;
 
   return (
-    <div className="app">
-      <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+    <div style={styles.app}>
+      <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
       
-      <div className={`main-content ${sidebarCollapsed ? 'expanded sidebar-collapsed' : 'sidebar-expanded'}`}>
+      <Sidebar 
+        collapsed={sidebarCollapsed} 
+        setCollapsed={setSidebarCollapsed}
+        isMobile={isMobile}
+      />
+      
+      <div className="main-content" style={styles.mainContent}>
         <Topbar 
           pageName={getPageName()} 
-          onMenuClick={handleMenuClick}
           onSearchClick={() => setShowSearchModal(true)}
+          onAddAssetClick={handleAddAssetClick}
         />
         
-        <div className="content">
+        <div className="content" style={styles.content}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/tablets" element={<Tablets />} />
