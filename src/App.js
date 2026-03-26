@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -28,20 +28,17 @@ import GlobalSearchModal from './components/modals/GlobalSearchModal';
 import AddAssetModal from './components/modals/AddAssetModal';
 
 function AppContent() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showAddAssetModal, setShowAddAssetModal] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const location = useLocation();
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 992);
 
   // Check screen size for sidebar margin
   useEffect(() => {
-    const checkMobile = () => {
+    const handleResize = () => {
       setIsMobile(window.innerWidth <= 992);
     };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Set default user for demo
@@ -63,20 +60,8 @@ function AppContent() {
     }
   }, []);
 
-  // Listen for sidebar state changes from the Sidebar component
-  useEffect(() => {
-    const handleSidebarState = (e) => {
-      // This would be handled by a global state management in production
-      // For now, we'll use a custom event
-      console.log('Sidebar state changed');
-    };
-    
-    window.addEventListener('sidebarToggle', handleSidebarState);
-    return () => window.removeEventListener('sidebarToggle', handleSidebarState);
-  }, []);
-
   const getPageName = () => {
-    const path = location.pathname;
+    const path = window.location.pathname;
     if (path === '/') return 'Dashboard';
     if (path === '/tablets') return 'Tablets & Accessories';
     if (path === '/laptops') return 'Laptops';
@@ -101,23 +86,15 @@ function AppContent() {
     setShowAddAssetModal(false);
   };
 
-  // Determine main content margin based on screen size and sidebar state
-  const getMainContentMargin = () => {
-    if (isMobile) return '0';
-    // This would need to be synced with Sidebar state
-    // For now, we'll use a class-based approach
-    return '';
-  };
-
   return (
     <div style={{ display: 'flex', minHeight: '100vh', position: 'relative', zIndex: 1 }}>
       <Sidebar />
       
       <div 
-        className={`main-content ${!isMobile && !sidebarCollapsed ? 'sidebar-expanded' : 'sidebar-collapsed'}`}
+        className="main-content"
         style={{
           flex: 1,
-          marginLeft: !isMobile ? (sidebarCollapsed ? '70px' : '260px') : '0',
+          marginLeft: !isMobile ? '260px' : '0',
           display: 'flex',
           flexDirection: 'column',
           minHeight: '100vh',

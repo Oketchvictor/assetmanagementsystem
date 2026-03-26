@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
   FiGrid, FiMonitor, FiHome, FiPackage, 
@@ -8,40 +8,25 @@ import {
 
 const Sidebar = () => {
   const location = useLocation();
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 992);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const sidebarRef = useRef(null);
 
-  // Check screen size
+  // Handle window resize
   useEffect(() => {
-    const checkScreenSize = () => {
+    const handleResize = () => {
       const mobile = window.innerWidth <= 992;
       setIsMobile(mobile);
+      
+      // Reset mobile open state when switching to desktop
       if (!mobile) {
         setIsMobileOpen(false);
       }
     };
     
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    return () => window.removeEventListener('resize', checkScreenSize);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  // Close mobile sidebar when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (isMobile && isMobileOpen && sidebarRef.current && !sidebarRef.current.contains(event.target)) {
-        const toggleBtn = document.querySelector('.mobile-toggle-btn');
-        if (toggleBtn && !toggleBtn.contains(event.target)) {
-          setIsMobileOpen(false);
-        }
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isMobile, isMobileOpen]);
 
   // Close mobile sidebar when navigating
   useEffect(() => {
@@ -49,6 +34,22 @@ const Sidebar = () => {
       setIsMobileOpen(false);
     }
   }, [location.pathname, isMobile]);
+
+  // Close mobile sidebar when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isMobile && isMobileOpen) {
+        const sidebar = document.querySelector('.sidebar');
+        const toggleBtn = document.querySelector('.mobile-toggle-btn');
+        if (sidebar && !sidebar.contains(event.target) && toggleBtn && !toggleBtn.contains(event.target)) {
+          setIsMobileOpen(false);
+        }
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isMobile, isMobileOpen]);
 
   const navItems = [
     {
@@ -91,41 +92,41 @@ const Sidebar = () => {
     };
   };
 
-  // Toggle sidebar on desktop
-  const toggleDesktopSidebar = () => {
+  // Toggle desktop sidebar collapse
+  const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
   };
 
-  // Toggle sidebar on mobile
-  const toggleMobileSidebar = () => {
+  // Toggle mobile sidebar open/close
+  const toggleMobile = () => {
     setIsMobileOpen(!isMobileOpen);
   };
 
-  // Determine sidebar width
+  // Get sidebar width based on state
   const getSidebarWidth = () => {
     if (isMobile) return '280px';
     return isCollapsed ? '70px' : '260px';
   };
 
-  // Determine if text should be shown
-  const showText = () => {
-    if (isMobile) return true;
-    return !isCollapsed;
-  };
-
-  // Determine sidebar visibility on mobile
+  // Get sidebar transform for mobile
   const getMobileTransform = () => {
     if (!isMobile) return 'translateX(0)';
     return isMobileOpen ? 'translateX(0)' : 'translateX(-100%)';
   };
 
+  // Check if text should be visible
+  const showText = () => {
+    if (isMobile) return true;
+    return !isCollapsed;
+  };
+
   return (
     <>
-      {/* Mobile Toggle Button - Hamburger Icon */}
+      {/* Mobile Toggle Button - Only visible on mobile */}
       {isMobile && (
         <button
           className="mobile-toggle-btn"
-          onClick={toggleMobileSidebar}
+          onClick={toggleMobile}
           style={{
             position: 'fixed',
             top: '12px',
@@ -149,7 +150,7 @@ const Sidebar = () => {
         </button>
       )}
 
-      {/* Mobile Overlay */}
+      {/* Mobile Overlay - Only visible when mobile sidebar is open */}
       {isMobile && isMobileOpen && (
         <div
           onClick={() => setIsMobileOpen(false)}
@@ -168,7 +169,7 @@ const Sidebar = () => {
 
       {/* Sidebar */}
       <div
-        ref={sidebarRef}
+        className="sidebar"
         style={{
           position: 'fixed',
           top: 0,
@@ -293,6 +294,11 @@ const Sidebar = () => {
                   <NavLink
                     key={itemIdx}
                     to={item.path}
+                    onClick={() => {
+                      if (isMobile) {
+                        setIsMobileOpen(false);
+                      }
+                    }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -345,7 +351,7 @@ const Sidebar = () => {
           ))}
         </div>
 
-        {/* User Section - Always at Bottom */}
+        {/* User Section - Always visible at bottom */}
         <div
           style={{
             padding: '12px 16px',
@@ -361,8 +367,7 @@ const Sidebar = () => {
               justifyContent: showText() ? 'flex-start' : 'center',
               gap: showText() ? '12px' : '0',
               padding: '8px 0',
-              borderRadius: '9px',
-              cursor: 'pointer'
+              borderRadius: '9px'
             }}
           >
             <div
@@ -421,10 +426,10 @@ const Sidebar = () => {
           </div>
         </div>
 
-        {/* Desktop Toggle Button - Only on desktop */}
+        {/* Desktop Toggle Button - Only visible on desktop */}
         {!isMobile && (
           <button
-            onClick={toggleDesktopSidebar}
+            onClick={toggleCollapse}
             style={{
               position: 'absolute',
               bottom: '100px',
@@ -460,18 +465,18 @@ const Sidebar = () => {
       <style dangerouslySetInnerHTML={{
         __html: `
           /* Nav Link Hover Effect */
-          a:not(.active):hover {
+          .sidebar a:not(.active):hover {
             background: rgba(255, 255, 255, 0.04) !important;
             color: #D8EAF8 !important;
             border-left-color: #243B54 !important;
           }
           
-          /* Main Content Margin Adjustment */
+          /* Main Content Margin */
           .main-content {
             transition: margin-left 0.3s ease;
           }
           
-          /* Desktop margin */
+          /* Desktop Styles */
           @media (min-width: 993px) {
             .main-content {
               margin-left: 260px;
@@ -479,12 +484,9 @@ const Sidebar = () => {
             .main-content.sidebar-collapsed {
               margin-left: 70px;
             }
-            .main-content.sidebar-expanded {
-              margin-left: 260px;
-            }
           }
           
-          /* Mobile margin - no margin */
+          /* Mobile Styles - No margin */
           @media (max-width: 992px) {
             .main-content {
               margin-left: 0 !important;
@@ -501,7 +503,7 @@ const Sidebar = () => {
             transform: scale(0.95);
           }
           
-          /* Scrollbar Styling */
+          /* Scrollbar */
           ::-webkit-scrollbar {
             width: 4px;
           }
@@ -517,16 +519,6 @@ const Sidebar = () => {
           
           ::-webkit-scrollbar-thumb:hover {
             background: #00E5A8;
-          }
-          
-          /* Animation for mobile sidebar */
-          @keyframes slideIn {
-            from {
-              transform: translateX(-100%);
-            }
-            to {
-              transform: translateX(0);
-            }
           }
         `
       }} />
