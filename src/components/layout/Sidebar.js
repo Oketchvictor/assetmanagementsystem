@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
   FiGrid, FiMonitor, FiHome, FiPackage, 
@@ -6,60 +6,69 @@ import {
   FiChevronRight, FiMenu, FiX
 } from 'react-icons/fi';
 
-const Sidebar = ({ collapsed, setCollapsed, isMobile: propIsMobile }) => {
+const Sidebar = () => {
   const location = useLocation();
-  const [isMobile, setIsMobile] = useState(propIsMobile || (typeof window !== 'undefined' && window.innerWidth <= 992));
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const sidebarRef = useRef(null);
 
-  // Update isMobile when prop changes
+  // Check screen size
   useEffect(() => {
-    setIsMobile(propIsMobile || (typeof window !== 'undefined' && window.innerWidth <= 992));
-  }, [propIsMobile]);
-
-  // Check screen resize
-  useEffect(() => {
-    const handleResize = () => {
+    const checkScreenSize = () => {
       const mobile = window.innerWidth <= 992;
       setIsMobile(mobile);
-      if (!mobile && mobileOpen) {
-        setMobileOpen(false);
+      if (!mobile) {
+        setIsMobileOpen(false);
       }
     };
     
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [mobileOpen]);
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  // Close mobile sidebar when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isMobile && isMobileOpen && sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+        const toggleBtn = document.querySelector('.mobile-toggle-btn');
+        if (toggleBtn && !toggleBtn.contains(event.target)) {
+          setIsMobileOpen(false);
+        }
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMobile, isMobileOpen]);
 
   // Close mobile sidebar when navigating
   useEffect(() => {
-    if (isMobile && mobileOpen) {
-      setMobileOpen(false);
+    if (isMobile && isMobileOpen) {
+      setIsMobileOpen(false);
     }
   }, [location.pathname, isMobile]);
-
-  const toggleMobileSidebar = () => {
-    setMobileOpen(!mobileOpen);
-  };
 
   const navItems = [
     {
       section: 'Overview',
       items: [
-        { path: '/', icon: <FiGrid />, text: 'Dashboard', badge: null },
-        { path: '/tablets', icon: <FiMonitor />, text: 'Tablets & Accessories', badge: 48 },
-        { path: '/laptops', icon: <FiMonitor />, text: 'Laptops', badge: 32 },
-        { path: '/furniture', icon: <FiHome />, text: 'Furniture', badge: null },
-        { path: '/other-assets', icon: <FiPackage />, text: 'Other Assets', badge: { count: 1, type: 'danger' } }
+        { path: '/', icon: <FiGrid size={18} />, text: 'Dashboard', badge: null },
+        { path: '/tablets', icon: <FiMonitor size={18} />, text: 'Tablets & Accessories', badge: 48 },
+        { path: '/laptops', icon: <FiMonitor size={18} />, text: 'Laptops', badge: 32 },
+        { path: '/furniture', icon: <FiHome size={18} />, text: 'Furniture', badge: null },
+        { path: '/other-assets', icon: <FiPackage size={18} />, text: 'Other Assets', badge: { count: 1, type: 'danger' } }
       ]
     },
     {
       section: 'Administration',
       items: [
-        { path: '/staff', icon: <FiUsers />, text: 'Staff Directory', badge: null },
-        { path: '/transfers', icon: <FiRepeat />, text: 'Transfers', badge: { count: 3, type: 'warn' } },
-        { path: '/maintenance', icon: <FiTool />, text: 'Maintenance', badge: { count: 4, type: 'danger' } },
-        { path: '/reports', icon: <FiFileText />, text: 'Reports', badge: null },
-        { path: '/settings', icon: <FiSettings />, text: 'Settings', badge: null }
+        { path: '/staff', icon: <FiUsers size={18} />, text: 'Staff Directory', badge: null },
+        { path: '/transfers', icon: <FiRepeat size={18} />, text: 'Transfers', badge: { count: 3, type: 'warn' } },
+        { path: '/maintenance', icon: <FiTool size={18} />, text: 'Maintenance', badge: { count: 4, type: 'danger' } },
+        { path: '/reports', icon: <FiFileText size={18} />, text: 'Reports', badge: null },
+        { path: '/settings', icon: <FiSettings size={18} />, text: 'Settings', badge: null }
       ]
     }
   ];
@@ -82,43 +91,41 @@ const Sidebar = ({ collapsed, setCollapsed, isMobile: propIsMobile }) => {
     };
   };
 
-  const showText = () => {
-    if (isMobile) return true;
-    return !collapsed;
+  // Toggle sidebar on desktop
+  const toggleDesktopSidebar = () => {
+    setIsCollapsed(!isCollapsed);
   };
 
+  // Toggle sidebar on mobile
+  const toggleMobileSidebar = () => {
+    setIsMobileOpen(!isMobileOpen);
+  };
+
+  // Determine sidebar width
   const getSidebarWidth = () => {
     if (isMobile) return '280px';
-    return collapsed ? '70px' : '260px';
+    return isCollapsed ? '70px' : '260px';
   };
 
-  const getSidebarTransform = () => {
+  // Determine if text should be shown
+  const showText = () => {
+    if (isMobile) return true;
+    return !isCollapsed;
+  };
+
+  // Determine sidebar visibility on mobile
+  const getMobileTransform = () => {
     if (!isMobile) return 'translateX(0)';
-    return mobileOpen ? 'translateX(0)' : 'translateX(-100%)';
+    return isMobileOpen ? 'translateX(0)' : 'translateX(-100%)';
   };
 
   return (
     <>
-      {/* Mobile Overlay */}
-      {isMobile && mobileOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 399,
-            backdropFilter: 'blur(2px)'
-          }}
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-      
-      {/* Mobile Toggle Button */}
+      {/* Mobile Toggle Button - Hamburger Icon */}
       {isMobile && (
         <button
+          className="mobile-toggle-btn"
+          onClick={toggleMobileSidebar}
           style={{
             position: 'fixed',
             top: '12px',
@@ -133,386 +140,392 @@ const Sidebar = ({ collapsed, setCollapsed, isMobile: propIsMobile }) => {
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            zIndex: 450,
-            transition: 'all 0.15s',
+            zIndex: 1000,
+            transition: 'all 0.2s',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
-          }}
-          onClick={toggleMobileSidebar}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#162234';
-            e.currentTarget.style.borderColor = '#243B54';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#0C1829';
-            e.currentTarget.style.borderColor = '#1C2E44';
           }}
         >
           <FiMenu size={20} />
         </button>
       )}
-      
-      {/* Sidebar Container */}
+
+      {/* Mobile Overlay */}
+      {isMobile && isMobileOpen && (
+        <div
+          onClick={() => setIsMobileOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 998,
+            backdropFilter: 'blur(2px)'
+          }}
+        />
+      )}
+
+      {/* Sidebar */}
       <div
+        ref={sidebarRef}
         style={{
           position: 'fixed',
           top: 0,
           left: 0,
+          width: getSidebarWidth(),
           height: '100vh',
-          zIndex: 400,
-          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          transform: getSidebarTransform()
+          background: '#0C1829',
+          borderRight: '1px solid #1C2E44',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '4px 0 24px rgba(0, 0, 0, 0.2)',
+          transition: 'width 0.3s ease, transform 0.3s ease',
+          transform: getMobileTransform(),
+          zIndex: 999,
+          overflow: 'hidden'
         }}
       >
-        <div
-          style={{
-            width: getSidebarWidth(),
-            height: '100vh',
-            background: '#0C1829',
-            borderRight: '1px solid #1C2E44',
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: '4px 0 24px rgba(0, 0, 0, 0.2)',
-            transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            overflow: 'hidden',
-            position: 'relative'
-          }}
-        >
-          {/* Mobile Close Button */}
-          {isMobile && mobileOpen && (
-            <button
-              style={{
-                position: 'absolute',
-                top: '20px',
-                right: '20px',
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                background: '#162234',
-                border: '1px solid #1C2E44',
-                color: '#D8EAF8',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-                zIndex: 10
-              }}
-              onClick={() => setMobileOpen(false)}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#1C2E44';
-                e.currentTarget.style.color = '#FF5A65';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#162234';
-                e.currentTarget.style.color = '#D8EAF8';
-              }}
-            >
-              <FiX size={18} />
-            </button>
-          )}
-          
-          {/* Brand Section */}
-          <div
+        {/* Mobile Close Button */}
+        {isMobile && isMobileOpen && (
+          <button
+            onClick={() => setIsMobileOpen(false)}
             style={{
-              padding: '18px 16px 15px',
-              borderBottom: '1px solid #1C2E44',
+              position: 'absolute',
+              top: '16px',
+              right: '16px',
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: '#162234',
+              border: '1px solid #1C2E44',
+              color: '#D8EAF8',
               display: 'flex',
               alignItems: 'center',
-              gap: '11px',
-              flexShrink: 0
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 10
             }}
           >
-            <div
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '10px',
-                flexShrink: 0,
-                background: 'linear-gradient(135deg, #00E5A8, #00C49A)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 0 24px rgba(0, 229, 168, 0.18)'
-              }}
-            >
-              <span style={{
-                fontFamily: 'Syne, sans-serif',
-                fontWeight: 800,
-                fontSize: '18px',
-                color: '#07101F'
-              }}>S</span>
-            </div>
-            {showText() && (
-              <div style={{
-                overflow: 'hidden',
-                whiteSpace: 'nowrap',
-                flex: 1
-              }}>
-                <div style={{
-                  fontFamily: 'Syne, sans-serif',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  color: '#D8EAF8',
-                  lineHeight: 1.2,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}>Seovo Solutions</div>
-                <div style={{
-                  fontSize: '9px',
-                  color: '#3D5A78',
-                  letterSpacing: '0.13em',
-                  textTransform: 'uppercase',
-                  marginTop: '1px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}>Asset Management</div>
-              </div>
-            )}
-          </div>
+            <FiX size={18} />
+          </button>
+        )}
 
-          {/* Navigation */}
-          <nav
+        {/* Brand Section */}
+        <div
+          style={{
+            padding: '20px 16px',
+            borderBottom: '1px solid #1C2E44',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}
+        >
+          <div
             style={{
-              flex: 1,
-              padding: '6px 0',
-              overflowY: 'auto',
-              overflowX: 'hidden'
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              flexShrink: 0,
+              background: 'linear-gradient(135deg, #00E5A8, #00C49A)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 24px rgba(0, 229, 168, 0.18)'
             }}
           >
-            {navItems.map((section, idx) => (
-              <React.Fragment key={idx}>
+            <span style={{
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 800,
+              fontSize: '18px',
+              color: '#07101F'
+            }}>S</span>
+          </div>
+          {showText() && (
+            <div style={{ overflow: 'hidden' }}>
+              <div style={{
+                fontFamily: 'Syne, sans-serif',
+                fontSize: '13px',
+                fontWeight: 700,
+                color: '#D8EAF8',
+                whiteSpace: 'nowrap'
+              }}>Seovo Solutions</div>
+              <div style={{
+                fontSize: '9px',
+                color: '#3D5A78',
+                letterSpacing: '0.13em',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap'
+              }}>Asset Management</div>
+            </div>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            padding: '8px 0'
+          }}
+        >
+          {navItems.map((section, idx) => (
+            <div key={idx}>
+              {showText() && (
                 <div
                   style={{
-                    padding: '14px 16px 4px',
-                    fontSize: '9px',
-                    letterSpacing: '0.15em',
+                    padding: '12px 16px 6px',
+                    fontSize: '10px',
+                    letterSpacing: '0.1em',
                     textTransform: 'uppercase',
                     color: '#3D5A78',
-                    fontWeight: 700,
-                    display: showText() ? 'block' : 'none'
+                    fontWeight: 600
                   }}
                 >
                   {section.section}
                 </div>
-                {section.items.map((item, itemIdx) => {
-                  const badgeStyle = getBadgeStyle(item.badge);
-                  return (
-                    <NavLink
-                      key={itemIdx}
-                      to={item.path}
-                      className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                      style={({ isActive }) => ({
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        padding: '9px 16px',
-                        color: isActive ? '#00E5A8' : '#6B8FAE',
-                        fontSize: '13px',
-                        fontWeight: isActive ? 600 : 500,
-                        borderLeft: '3px solid',
-                        borderLeftColor: isActive ? '#00E5A8' : 'transparent',
-                        transition: 'all 0.16s',
-                        position: 'relative',
-                        textDecoration: 'none',
-                        cursor: 'pointer',
-                        background: isActive ? 'rgba(0, 229, 168, 0.08)' : 'transparent'
-                      })}
-                    >
-                      <span
-                        style={{
-                          width: '17px',
-                          textAlign: 'center',
-                          fontSize: '13px',
-                          flexShrink: 0,
-                          opacity: 0.9
-                        }}
-                      >
-                        {item.icon}
-                      </span>
-                      {showText() && (
-                        <>
+              )}
+              {section.items.map((item, itemIdx) => {
+                const badgeStyle = getBadgeStyle(item.badge);
+                const isActive = location.pathname === item.path;
+                return (
+                  <NavLink
+                    key={itemIdx}
+                    to={item.path}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: showText() ? 'flex-start' : 'center',
+                      gap: showText() ? '12px' : '0',
+                      padding: showText() ? '10px 16px' : '12px 0',
+                      margin: showText() ? '0' : '4px 0',
+                      color: isActive ? '#00E5A8' : '#6B8FAE',
+                      fontSize: '13px',
+                      fontWeight: isActive ? 600 : 500,
+                      borderLeft: isActive ? '3px solid #00E5A8' : '3px solid transparent',
+                      transition: 'all 0.2s',
+                      textDecoration: 'none',
+                      cursor: 'pointer',
+                      background: isActive ? 'rgba(0, 229, 168, 0.08)' : 'transparent',
+                      width: '100%'
+                    }}
+                  >
+                    <span style={{
+                      width: showText() ? '20px' : 'auto',
+                      textAlign: 'center',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {item.icon}
+                    </span>
+                    {showText() && (
+                      <>
+                        <span style={{ flex: 1, whiteSpace: 'nowrap' }}>{item.text}</span>
+                        {item.badge && (
                           <span
                             style={{
-                              flex: 1,
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              display: 'block'
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              padding: '2px 7px',
+                              borderRadius: '99px',
+                              ...badgeStyle
                             }}
                           >
-                            {item.text}
+                            {typeof item.badge === 'object' ? item.badge.count : item.badge}
                           </span>
-                          {item.badge && (
-                            <span
-                              style={{
-                                marginLeft: 'auto',
-                                fontSize: '10px',
-                                fontWeight: 700,
-                                padding: '2px 7px',
-                                borderRadius: '99px',
-                                ...badgeStyle
-                              }}
-                            >
-                              {typeof item.badge === 'object' ? item.badge.count : item.badge}
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </NavLink>
-                  );
-                })}
-              </React.Fragment>
-            ))}
-          </nav>
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </div>
+          ))}
+        </div>
 
-          {/* User Section - Fixed at Bottom */}
+        {/* User Section - Always at Bottom */}
+        <div
+          style={{
+            padding: '12px 16px',
+            borderTop: '1px solid #1C2E44',
+            background: '#0C1829',
+            marginTop: 'auto'
+          }}
+        >
           <div
             style={{
-              padding: '11px 13px',
-              borderTop: '1px solid #1C2E44',
-              flexShrink: 0,
-              marginTop: 'auto',
-              background: '#0C1829'
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: showText() ? 'flex-start' : 'center',
+              gap: showText() ? '12px' : '0',
+              padding: '8px 0',
+              borderRadius: '9px',
+              cursor: 'pointer'
             }}
           >
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '9px',
-                padding: '8px 9px',
-                borderRadius: '9px',
-                cursor: 'pointer',
-                transition: 'background 0.15s',
-                justifyContent: (!showText() && !isMobile) ? 'center' : 'flex-start',
-                overflow: 'hidden',
-                width: '100%'
-              }}
-            >
-              <div
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  flexShrink: 0,
-                  background: 'linear-gradient(135deg, #00E5A8, #4F9EF8)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  fontSize: '11px',
-                  color: '#07101F'
-                }}
-              >
-                AS
-              </div>
-              {showText() && (
-                <div
-                  style={{
-                    flex: 1,
-                    overflow: 'hidden',
-                    minWidth: 0
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: '12.5px',
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                      color: '#D8EAF8',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}
-                  >
-                    Admin Seovo
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '10.5px',
-                      color: '#3D5A78',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      marginTop: '2px'
-                    }}
-                  >
-                    Store Manager
-                  </div>
-                </div>
-              )}
-              {showText() && (
-                <FiChevronRight
-                  style={{
-                    color: '#3D5A78',
-                    fontSize: '9px',
-                    marginLeft: 'auto',
-                    flexShrink: 0
-                  }}
-                />
-              )}
-            </div>
-          </div>
-          
-          {/* Desktop Toggle Button */}
-          {!isMobile && (
-            <button
-              style={{
-                position: 'absolute',
-                bottom: '100px',
-                right: '-12px',
-                width: '24px',
-                height: '24px',
+                width: '36px',
+                height: '36px',
                 borderRadius: '50%',
-                background: '#162234',
-                border: '1px solid #243B54',
-                color: '#D8EAF8',
+                flexShrink: 0,
+                background: 'linear-gradient(135deg, #00E5A8, #4F9EF8)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                zIndex: 10
-              }}
-              onClick={() => setCollapsed(!collapsed)}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#1C2E44';
-                e.currentTarget.style.color = '#00E5A8';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#162234';
-                e.currentTarget.style.color = '#D8EAF8';
+                fontWeight: 800,
+                fontSize: '12px',
+                color: '#07101F'
               }}
             >
-              <FiMenu size={12} />
-            </button>
-          )}
+              AS
+            </div>
+            {showText() && (
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#D8EAF8',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  Admin Seovo
+                </div>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    color: '#3D5A78',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  Store Manager
+                </div>
+              </div>
+            )}
+            {showText() && (
+              <FiChevronRight
+                style={{
+                  color: '#3D5A78',
+                  fontSize: '12px',
+                  flexShrink: 0
+                }}
+              />
+            )}
+          </div>
         </div>
+
+        {/* Desktop Toggle Button - Only on desktop */}
+        {!isMobile && (
+          <button
+            onClick={toggleDesktopSidebar}
+            style={{
+              position: 'absolute',
+              bottom: '100px',
+              right: '-12px',
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              background: '#162234',
+              border: '1px solid #243B54',
+              color: '#D8EAF8',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              zIndex: 10
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#1C2E44';
+              e.currentTarget.style.color = '#00E5A8';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#162234';
+              e.currentTarget.style.color = '#D8EAF8';
+            }}
+          >
+            <FiMenu size={12} />
+          </button>
+        )}
       </div>
 
-      {/* Global Nav Link Styles */}
+      {/* Global Styles */}
       <style dangerouslySetInnerHTML={{
         __html: `
-          .nav-link:hover {
+          /* Nav Link Hover Effect */
+          a:not(.active):hover {
             background: rgba(255, 255, 255, 0.04) !important;
             color: #D8EAF8 !important;
             border-left-color: #243B54 !important;
           }
           
-          .nav-link.active::after {
-            content: '';
-            position: absolute;
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 3px;
-            height: 18px;
-            background: #00E5A8;
-            border-radius: 3px 0 0 3px;
+          /* Main Content Margin Adjustment */
+          .main-content {
+            transition: margin-left 0.3s ease;
           }
           
+          /* Desktop margin */
+          @media (min-width: 993px) {
+            .main-content {
+              margin-left: 260px;
+            }
+            .main-content.sidebar-collapsed {
+              margin-left: 70px;
+            }
+            .main-content.sidebar-expanded {
+              margin-left: 260px;
+            }
+          }
+          
+          /* Mobile margin - no margin */
           @media (max-width: 992px) {
-            .nav-link.active::after {
-              display: none;
+            .main-content {
+              margin-left: 0 !important;
+            }
+          }
+          
+          /* Mobile Toggle Button Hover */
+          .mobile-toggle-btn:hover {
+            background: #162234 !important;
+            border-color: #243B54 !important;
+          }
+          
+          .mobile-toggle-btn:active {
+            transform: scale(0.95);
+          }
+          
+          /* Scrollbar Styling */
+          ::-webkit-scrollbar {
+            width: 4px;
+          }
+          
+          ::-webkit-scrollbar-track {
+            background: #162234;
+          }
+          
+          ::-webkit-scrollbar-thumb {
+            background: #243B54;
+            border-radius: 4px;
+          }
+          
+          ::-webkit-scrollbar-thumb:hover {
+            background: #00E5A8;
+          }
+          
+          /* Animation for mobile sidebar */
+          @keyframes slideIn {
+            from {
+              transform: translateX(-100%);
+            }
+            to {
+              transform: translateX(0);
             }
           }
         `

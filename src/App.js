@@ -29,29 +29,22 @@ import AddAssetModal from './components/modals/AddAssetModal';
 
 function AppContent() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showAddAssetModal, setShowAddAssetModal] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const location = useLocation();
 
-  // Check if screen is mobile
+  // Check screen size for sidebar margin
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 992);
-      // Auto collapse sidebar on mobile
-      if (window.innerWidth <= 992) {
-        setSidebarCollapsed(true);
-      } else {
-        setSidebarCollapsed(false);
-      }
     };
-    
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Set default user if not logged in (for demo)
+  // Set default user for demo
   useEffect(() => {
     if (!localStorage.getItem('user')) {
       const defaultUser = {
@@ -68,6 +61,18 @@ function AppContent() {
       localStorage.setItem('user', JSON.stringify(defaultUser));
       localStorage.setItem('token', 'demo-token-12345');
     }
+  }, []);
+
+  // Listen for sidebar state changes from the Sidebar component
+  useEffect(() => {
+    const handleSidebarState = (e) => {
+      // This would be handled by a global state management in production
+      // For now, we'll use a custom event
+      console.log('Sidebar state changed');
+    };
+    
+    window.addEventListener('sidebarToggle', handleSidebarState);
+    return () => window.removeEventListener('sidebarToggle', handleSidebarState);
   }, []);
 
   const getPageName = () => {
@@ -96,146 +101,42 @@ function AppContent() {
     setShowAddAssetModal(false);
   };
 
-  // Get the appropriate margin based on sidebar state
+  // Determine main content margin based on screen size and sidebar state
   const getMainContentMargin = () => {
     if (isMobile) return '0';
-    return sidebarCollapsed ? '70px' : '260px';
+    // This would need to be synced with Sidebar state
+    // For now, we'll use a class-based approach
+    return '';
   };
-
-  const styles = {
-    app: {
-      display: 'flex',
-      minHeight: '100vh',
-      position: 'relative',
-      zIndex: 1
-    },
-    mainContent: {
-      flex: 1,
-      marginLeft: getMainContentMargin(),
-      display: 'flex',
-      flexDirection: 'column',
-      minHeight: '100vh',
-      transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      width: '100%'
-    },
-    content: {
-      flex: 1,
-      padding: '24px 28px',
-      overflowX: 'hidden',
-      width: '100%'
-    }
-  };
-
-  // Add global styles
-  const globalStyles = `
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    html, body {
-      height: 100%;
-      background: #07101F;
-      color: #D8EAF8;
-      font-family: 'Outfit', sans-serif;
-      font-size: 14px;
-      line-height: 1.6;
-      scroll-behavior: smooth;
-    }
-    
-    /* Responsive adjustments */
-    @media (max-width: 992px) {
-      .main-content {
-        margin-left: 0 !important;
-      }
-      
-      .content {
-        padding: 16px !important;
-      }
-    }
-    
-    @media (max-width: 768px) {
-      .content {
-        padding: 12px !important;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      .content {
-        padding: 8px !important;
-      }
-    }
-    
-    /* Custom scrollbar */
-    ::-webkit-scrollbar {
-      width: 4px;
-      height: 4px;
-    }
-    
-    ::-webkit-scrollbar-track {
-      background: #0C1829;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-      background: #243B54;
-      border-radius: 4px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-      background: #00E5A8;
-    }
-    
-    /* Animation keyframes */
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(14px);
-      }
-      to {
-        opacity: 1;
-        transform: none;
-      }
-    }
-    
-    @keyframes slideIn {
-      from {
-        transform: translateX(40px);
-        opacity: 0;
-      }
-      to {
-        transform: none;
-        opacity: 1;
-      }
-    }
-    
-    .fade-in {
-      animation: fadeIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-    
-    .slide-in {
-      animation: slideIn 0.25s ease both;
-    }
-  `;
 
   return (
-    <div style={styles.app}>
-      <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
+    <div style={{ display: 'flex', minHeight: '100vh', position: 'relative', zIndex: 1 }}>
+      <Sidebar />
       
-      <Sidebar 
-        collapsed={sidebarCollapsed} 
-        setCollapsed={setSidebarCollapsed}
-        isMobile={isMobile}
-      />
-      
-      <div className="main-content" style={styles.mainContent}>
+      <div 
+        className={`main-content ${!isMobile && !sidebarCollapsed ? 'sidebar-expanded' : 'sidebar-collapsed'}`}
+        style={{
+          flex: 1,
+          marginLeft: !isMobile ? (sidebarCollapsed ? '70px' : '260px') : '0',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+          transition: 'margin-left 0.3s ease',
+          width: '100%'
+        }}
+      >
         <Topbar 
           pageName={getPageName()} 
           onSearchClick={() => setShowSearchModal(true)}
           onAddAssetClick={handleAddAssetClick}
         />
         
-        <div className="content" style={styles.content}>
+        <div style={{
+          flex: 1,
+          padding: '24px 28px',
+          overflowX: 'hidden',
+          width: '100%'
+        }}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/tablets" element={<Tablets />} />
@@ -279,6 +180,31 @@ function AppContent() {
         theme="dark"
         style={{ zIndex: 9999 }}
       />
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @media (max-width: 992px) {
+            .main-content {
+              margin-left: 0 !important;
+            }
+            .content {
+              padding: 16px !important;
+            }
+          }
+          
+          @media (max-width: 768px) {
+            .content {
+              padding: 12px !important;
+            }
+          }
+          
+          @media (max-width: 480px) {
+            .content {
+              padding: 8px !important;
+            }
+          }
+        `
+      }} />
     </div>
   );
 }
